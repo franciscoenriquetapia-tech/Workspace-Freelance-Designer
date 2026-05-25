@@ -1280,7 +1280,8 @@ select:focus, input:focus, textarea:focus {
             <table class="db-table">
               <thead>
                 <tr>
-                  <th>Recurso / Asignatura</th>
+                  <th>Recurso</th>
+                  <th>Asignatura</th>
                   <th>Institución</th>
                   <th>Tipo</th>
                   <th>Tarifa</th>
@@ -1336,7 +1337,8 @@ select:focus, input:focus, textarea:focus {
             <table class="db-table">
               <thead>
                 <tr>
-                  <th>Recurso / Asignatura</th>
+                  <th>Recurso</th>
+                  <th>Asignatura</th>
                   <th>Institución</th>
                   <th>Tipo</th>
                   <th>Tarifa</th>
@@ -2114,7 +2116,7 @@ function renderTable(){
   
   tbody.innerHTML = paginated.length
     ? paginated.map(r=>rowHtml(r)).join('')
-    : `<tr><td colspan="6" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos registrados</div></td></tr>`;
+    : `<tr><td colspan="7" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos registrados</div></td></tr>`;
     
   const pagContainer = document.getElementById('dash-pag-container');
   if (pagContainer) {
@@ -2163,7 +2165,9 @@ function rowHtml(r){
   return `<tr>
     <td>
       <div class="cell-title">${r.title}</div>
-      <div class="cell-subtitle">${r.subject}</div>
+    </td>
+    <td>
+      <div style="font-weight:600; color:var(--tx); font-size:12.5px;">${r.subject}</div>
     </td>
     <td>${cBadge}</td>
     <td>${t.label}</td>
@@ -2199,7 +2203,7 @@ function renderResources(){
   
   tbody.innerHTML = paginated.length
     ? paginated.map(r=>rowHtml(r)).join('')
-    : `<tr><td colspan="6" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos</div></td></tr>`;
+    : `<tr><td colspan="7" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos</div></td></tr>`;
     
   const pagContainer = document.getElementById('rec-pag-container');
   if (pagContainer) {
