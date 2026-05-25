@@ -2513,14 +2513,53 @@ function loadDemo(){
   setTimeout(()=>document.getElementById('pnl-import').style.display='none',1500);
 }
 
+function generateDefaultSantoTomasResources() {
+  const list = [];
+  const stSubjects = DEF_SUBJECTS[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dueStr = new Date();
+  dueStr.setDate(dueStr.getDate() + 7);
+  const dueStrFormatted = dueStr.toISOString().split('T')[0];
+  
+  stSubjects.forEach((subj, idx) => {
+    list.push({
+      id: 'st-b-' + idx,
+      title: 'Video de Bienvenida',
+      clientId: 0,
+      subject: subj,
+      tipo: 'tipo1',
+      kind: 'video_canva',
+      assignedDate: todayStr,
+      dueDate: dueStrFormatted,
+      assignedBy: 'Auto',
+      status: 'pendiente',
+      notes: 'Video introductorio de la asignatura'
+    });
+    list.push({
+      id: 'st-c-' + idx,
+      title: 'Video de Cierre',
+      clientId: 0,
+      subject: subj,
+      tipo: 'tipo1',
+      kind: 'video_canva',
+      assignedDate: todayStr,
+      dueDate: dueStrFormatted,
+      assignedBy: 'Auto',
+      status: 'pendiente',
+      notes: 'Video conclusivo de la asignatura'
+    });
+  });
+  return list;
+}
+
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 load();
 // Enforce the custom subjects layout on boot
 S.subjects = CLIENTS.map((_, i) => [...DEF_SUBJECTS[i]]);
-// Force the database to start completely at zero, to be filled dynamically as resources are created
-S.resources = [];
+// Pre-populate database with default Santo Tomás welcoming and closing resources
+S.resources = generateDefaultSantoTomasResources();
 save();
 updateDot();
 renderDash();
