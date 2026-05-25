@@ -2511,8 +2511,18 @@ function renderCalendar(){
       <div class="cdn">${day}</div>
       ${evts.map(r=>{
         const p=r.status==='completado'?{lv:'completado'}:prio(r);
-        const bg=p.lv==='urgente'||p.lv==='vencido'?'var(--erl)':p.lv==='alta'?'var(--orl)':'var(--okl)';
-        const cl=p.lv==='urgente'||p.lv==='vencido'?'var(--er)':p.lv==='alta'?'var(--or)':'var(--ok)';
+        
+        const KIND_COLORS = {
+          diagramacion: { bg: '#e0f2fe', cl: '#0369a1' },         // Sky blue
+          video_canva: { bg: '#fdf2f8', cl: '#be185d' },          // Canva Pink
+          interactivo_genially: { bg: '#faf5ff', cl: '#7e22ce' }, // Genially Purple
+          presentacion_ppt: { bg: '#fef3c7', cl: '#b45309' },     // PPT Gold/Amber
+          rise: { bg: '#ecfdf5', cl: '#047857' }                  // Rise Emerald Green
+        };
+        const kc = KIND_COLORS[r.kind] || { bg: 'var(--okl)', cl: 'var(--ok)' };
+        const bg = kc.bg;
+        const cl = kc.cl;
+        
         const c=CLIENTS.find(c=>c.id===r.clientId);
         const stLabels={pendiente:'Pendiente',en_progreso:'En progreso',completado:'Completado'};
         const stLabel=stLabels[r.status]||r.status;
@@ -2521,7 +2531,16 @@ function renderCalendar(){
         const titleEscaped = r.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const tooltipHtml = `<strong>${titleEscaped}</strong><br><span style='color:var(--t3);'>Estado:</span> <strong>${stLabel}</strong><br><span style='color:var(--t3);'>Fecha Límite:</span> <strong>${formattedDate}</strong>`;
         
-        const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); vertical-align: middle;">${stLabel}</span>`;
+        let badgeStyle = 'background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); color: inherit;';
+        if (p.lv === 'urgente' || p.lv === 'vencido') {
+          badgeStyle = 'background: #ef4444; border: 1px solid #ef4444; color: #ffffff;';
+        } else if (r.status === 'completado') {
+          badgeStyle = 'background: #22c55e; border: 1px solid #22c55e; color: #ffffff;';
+        } else if (r.status === 'en_progreso') {
+          badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
+        }
+        
+        const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
         
         return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c?`[${c.short}] `:''} ${r.title}</div>`;
       }).join('')}
