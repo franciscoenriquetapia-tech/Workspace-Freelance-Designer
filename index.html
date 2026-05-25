@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 :root {
   --bg: #EDEBF8; /* Beautiful periwinkle grey canvas background from Google Stitch */
@@ -1529,6 +1530,19 @@ select:focus, input:focus, textarea:focus {
               <label class="fl">Días para "Alta" (≤)</label>
               <input type="number" id="cfg-high" min="1" max="7" value="4">
             </div>
+            
+            <div style="border-top: 1px solid var(--br); margin-top: 16px; padding-top: 16px; margin-bottom: 16px;">
+              <div class="fl" style="margin-bottom: 8px; font-weight: 700; color: var(--pri);">Notificaciones e Email</div>
+              <div class="fg" style="margin-bottom:12px;">
+                <label class="fl">Correo del Destinatario</label>
+                <input type="email" id="cfg-email" value="franciscoenrique.tapia@gmail.com" placeholder="ejemplo@correo.com">
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="cfg-email-active" checked style="width:auto; cursor:pointer;">
+                <label for="cfg-email-active" style="font-size:12px; font-weight:600; cursor:pointer; color:var(--t2);">Activar envío automático al correo</label>
+              </div>
+            </div>
+
             <button class="btn btn-p" onclick="saveCfg()"><i data-lucide="save"></i> Guardar configuración</button>
             <div id="cfg-msg2" style="margin-top:8px"></div>
           </div>
@@ -2125,6 +2139,58 @@ function updateEditTipos(cid, selTipo) {
     return `<option value="${key}"${key===curVal?' selected':''}>${t.label} → ${fM(t.price)}</option>`;
   }).join('');
 }
+function triggerNotification(title, body) {
+  // 1. Browser Native Desktop Notification
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' });
+        }
+      });
+    }
+  }
+
+  // 2. Email Service Dispatch (EmailJS Integration)
+  if (S.cfg?.emailActive !== false && S.cfg?.email) {
+    const emailTo = S.cfg.email;
+    console.log(`[Email Service] Despachando alerta a ${emailTo}: "${title}"`);
+    if (typeof emailjs !== 'undefined') {
+      emailjs.send("service_default", "template_alert", {
+        to_email: emailTo,
+        subject: title,
+        message: body,
+        system_time: new Date().toLocaleString()
+      }).then(
+        () => console.log(`[Email Service] Correo enviado exitosamente a ${emailTo}`),
+        (err) => console.warn(`[Email Service Integration] Para conectar EmailJS real, configura tu ID en emailjs.init(). (${err.text || err})`)
+      );
+    }
+  }
+}
+
+function checkAndNotifyResource(r) {
+  const d = dL(r.dueDate);
+  const u = S.cfg?.urgDays ?? 2;
+  const c = CLIENTS.find(cl => cl.id === r.clientId)?.name || 'Cliente';
+  
+  if (r.status !== 'completado') {
+    if (d < 0) {
+      triggerNotification(
+        `🚨 Recurso Vencido: ${r.title}`,
+        `Asignatura: ${r.subject} (${c}). Vencido hace ${Math.abs(d)} días.`
+      );
+    } else if (d <= u) {
+      triggerNotification(
+        `🔴 Recurso Urgente (Plazo ≤ ${u}d): ${r.title}`,
+        `Asignatura: ${r.subject} (${c}). Límite: ${fDate(r.dueDate)}.`
+      );
+    }
+  }
+}
+
 function closeEdit(){editId=null; document.getElementById('modal-edit').classList.remove('on')}
 function eAutoDue(){const v=document.getElementById('e-ass').value; if(v){const d=new Date(v); d.setDate(d.getDate()+7); document.getElementById('e-due').value=d.toISOString().split('T')[0]}}
 function saveEdit(){
@@ -2138,6 +2204,7 @@ function saveEdit(){
   r.assignedBy=document.getElementById('e-di').value.trim(); r.status=document.getElementById('e-st').value;
   r.notes=document.getElementById('e-notes').value.trim();
   save(); updateDot();
+  checkAndNotifyResource(r);
   document.getElementById('e-msg').innerHTML='<div class="al al-g">✅ Cambios guardados</div>';
   setTimeout(()=>{closeEdit(); renderDash();},900);
 }
@@ -2209,8 +2276,10 @@ function saveResource(){
   const notes=document.getElementById('f-notes').value.trim();
   const msg=document.getElementById('f-msg');
   if(!title||!ass||!due){msg.innerHTML='<div class="al al-w">⚠️ Completa los campos.</div>';return}
-  S.resources.push({id:genId(),title,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:due,assignedBy:di,status:st,notes});
+  const newRes = {id:genId(),title,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:due,assignedBy:di,status:st,notes};
+  S.resources.push(newRes);
   save(); updateDot();
+  checkAndNotifyResource(newRes);
   msg.innerHTML='<div class="al al-g">✅ Recurso guardado.</div>';
   setTimeout(()=>{clearForm(); go('dashboard')},1000);
 }
@@ -2526,6 +2595,13 @@ function renderConfig(){
       <span id="cfg-msg-${c.id}" style="font-size:11px;color:var(--ok);margin-left:8px;"></span>
     </div>
   `).join('');
+  
+  // Load email configuration dynamically into input fields
+  document.getElementById('cfg-urg').value = S.cfg?.urgDays ?? 2;
+  document.getElementById('cfg-high').value = S.cfg?.highDays ?? 4;
+  document.getElementById('cfg-email').value = S.cfg?.email ?? 'franciscoenrique.tapia@gmail.com';
+  document.getElementById('cfg-email-active').checked = S.cfg?.emailActive !== false;
+
   lucide.createIcons();
 }
 function saveSubjects(cid){
@@ -2537,7 +2613,12 @@ function saveSubjects(cid){
   msg.textContent='✅ Guardado'; setTimeout(()=>msg.textContent='',2000);
 }
 function saveCfg(){
-  S.cfg={urgDays:parseInt(document.getElementById('cfg-urg').value)||2,highDays:parseInt(document.getElementById('cfg-high').value)||4};
+  S.cfg={
+    urgDays:parseInt(document.getElementById('cfg-urg').value)||2,
+    highDays:parseInt(document.getElementById('cfg-high').value)||4,
+    email:document.getElementById('cfg-email').value.trim()||'franciscoenrique.tapia@gmail.com',
+    emailActive:document.getElementById('cfg-email-active').checked
+  };
   save(); updateDot();
   document.getElementById('cfg-msg2').innerHTML='<div class="al al-g">✅ Configuración guardada.</div>';
   setTimeout(()=>document.getElementById('cfg-msg2').innerHTML='',2000);
