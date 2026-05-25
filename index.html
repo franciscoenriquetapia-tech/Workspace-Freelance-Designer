@@ -1303,6 +1303,7 @@ select:focus, input:focus, textarea:focus {
               <tbody id="db-table-body"></tbody>
             </table>
           </div>
+          <div id="dash-pag-container" style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;"></div>
         </div>
         
         <!-- Dynamic Charts section -->
@@ -1358,6 +1359,7 @@ select:focus, input:focus, textarea:focus {
               <tbody id="recursos-table-body"></tbody>
             </table>
           </div>
+          <div id="rec-pag-container" style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;"></div>
         </div>
       </div>
 
@@ -1662,6 +1664,9 @@ let curClient='all'; // 'all' | 0 | 1 | 2
 let calOffset=0;
 let editId=null;
 let _clic=null,_dc=null,_ec2=null;
+let dashPage=1;
+let recPage=1;
+const PAGE_SIZE=10;
 
 function load(){const d=localStorage.getItem('rfust_v5');if(d){try{const p=JSON.parse(d);S={...S,...p};if(!S.subjects||S.subjects.length<3)S.subjects=CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]])}catch(e){}}}
 function save(){localStorage.setItem('rfust_v5',JSON.stringify(S))}
@@ -1692,6 +1697,8 @@ function cliRes(cli){return cli==='all'?S.resources:S.resources.filter(r=>r.clie
 // ══════════════════════════════════════════════════════════
 function setClient(cli){
   curClient=cli;
+  dashPage=1;
+  recPage=1;
   document.querySelectorAll('.ctab').forEach(el=>el.classList.remove('on'));
   document.getElementById(cli==='all'?'ctab-all':`ctab-${cli}`).classList.add('on');
   updateClientBadges();
@@ -1909,15 +1916,55 @@ function renderTable(){
   if(!tbody)return;
   const searchQ = document.getElementById('search-db').value.toLowerCase();
   
-  let R = S.resources;
+  let R = cliRes(curClient);
   if(searchQ){
     R = R.filter(r=>r.title.toLowerCase().includes(searchQ) || r.subject.toLowerCase().includes(searchQ));
   }
   
-  tbody.innerHTML = R.length
-    ? R.map(r=>rowHtml(r)).join('')
+  const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
+  if (dashPage > totalPages) dashPage = totalPages;
+  if (dashPage < 1) dashPage = 1;
+  
+  const paginated = R.slice((dashPage - 1) * PAGE_SIZE, dashPage * PAGE_SIZE);
+  
+  tbody.innerHTML = paginated.length
+    ? paginated.map(r=>rowHtml(r)).join('')
     : `<tr><td colspan="6" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos registrados</div></td></tr>`;
+    
+  const pagContainer = document.getElementById('dash-pag-container');
+  if (pagContainer) {
+    if (R.length <= PAGE_SIZE) {
+      pagContainer.innerHTML = '';
+    } else {
+      pagContainer.innerHTML = `
+        <span style="font-size:12px;color:var(--t3);font-weight:600;">Página ${dashPage} de ${totalPages} (${R.length} recursos)</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sec btn-sm" onclick="dashPrevPage()" ${dashPage===1?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left"></i></button>
+          <button class="btn btn-sec btn-sm" onclick="dashNextPage()" ${dashPage===totalPages?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-right"></i></button>
+        </div>
+      `;
+    }
+  }
   lucide.createIcons();
+}
+
+function dashPrevPage() {
+  if (dashPage > 1) {
+    dashPage--;
+    renderTable();
+  }
+}
+function dashNextPage() {
+  let R = cliRes(curClient);
+  const searchQ = document.getElementById('search-db').value.toLowerCase();
+  if(searchQ){
+    R = R.filter(r=>r.title.toLowerCase().includes(searchQ) || r.subject.toLowerCase().includes(searchQ));
+  }
+  const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
+  if (dashPage < totalPages) {
+    dashPage++;
+    renderTable();
+  }
 }
 
 function rowHtml(r){
@@ -1952,21 +1999,66 @@ function rowHtml(r){
 }
 
 function renderResources(){
+  fillFilters();
   const tbody = document.getElementById('recursos-table-body');
   if(!tbody)return;
   const fs = document.getElementById('fs').value;
   const ft = document.getElementById('ft').value;
   const fst = document.getElementById('fst').value;
   
-  let R = S.resources;
+  let R = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
   if(fs!=='all') R = R.filter(r=>r.subject===fs);
   if(ft!=='all') R = R.filter(r=>r.tipo===ft);
   if(fst!=='all') R = R.filter(r=>r.status===fst);
   
-  tbody.innerHTML = R.length
-    ? R.map(r=>rowHtml(r)).join('')
+  const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
+  if (recPage > totalPages) recPage = totalPages;
+  if (recPage < 1) recPage = 1;
+  
+  const paginated = R.slice((recPage - 1) * PAGE_SIZE, recPage * PAGE_SIZE);
+  
+  tbody.innerHTML = paginated.length
+    ? paginated.map(r=>rowHtml(r)).join('')
     : `<tr><td colspan="6" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos</div></td></tr>`;
+    
+  const pagContainer = document.getElementById('rec-pag-container');
+  if (pagContainer) {
+    if (R.length <= PAGE_SIZE) {
+      pagContainer.innerHTML = '';
+    } else {
+      pagContainer.innerHTML = `
+        <span style="font-size:12px;color:var(--t3);font-weight:600;">Página ${recPage} de ${totalPages} (${R.length} recursos)</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sec btn-sm" onclick="recPrevPage()" ${recPage===1?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left"></i></button>
+          <button class="btn btn-sec btn-sm" onclick="recNextPage()" ${recPage===totalPages?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-right"></i></button>
+        </div>
+      `;
+    }
+  }
   lucide.createIcons();
+}
+
+function recPrevPage() {
+  if (recPage > 1) {
+    recPage--;
+    renderResources();
+  }
+}
+function recNextPage() {
+  const fs = document.getElementById('fs').value;
+  const ft = document.getElementById('ft').value;
+  const fst = document.getElementById('fst').value;
+  
+  let R = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
+  if(fs!=='all') R = R.filter(r=>r.subject===fs);
+  if(ft!=='all') R = R.filter(r=>r.tipo===ft);
+  if(fst!=='all') R = R.filter(r=>r.status===fst);
+  
+  const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
+  if (recPage < totalPages) {
+    recPage++;
+    renderResources();
+  }
 }
 
 function fillFilters(){
