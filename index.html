@@ -2515,8 +2515,11 @@ function renderCalendar(){
         const stLabels={pendiente:'Pendiente',en_progreso:'En progreso',completado:'Completado'};
         const stLabel=stLabels[r.status]||r.status;
         const formattedDate=r.dueDate?r.dueDate.split('-').reverse().join('/'):'Sin fecha';
-        const tooltip=`${r.title}\nEstado: ${stLabel}\nFecha Límite: ${formattedDate}`;
-        return`<div class="cd-evt" style="background:${bg};color:${cl}" title="${tooltip}">${c?`[${c.short}] `:''} ${r.title}</div>`;
+        
+        const titleEscaped = r.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const tooltipHtml = `<strong>${titleEscaped}</strong><br><span style='color:var(--t3);'>Estado:</span> <strong>${stLabel}</strong><br><span style='color:var(--t3);'>Fecha Límite:</span> <strong>${formattedDate}</strong>`;
+        
+        return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${c?`[${c.short}] `:''} ${r.title}</div>`;
       }).join('')}
     </div>`;
   }
@@ -2525,6 +2528,49 @@ function renderCalendar(){
 }
 function calPrev(){calOffset--; renderCalendar()}
 function calNext(){calOffset++; renderCalendar()}
+
+let calTooltipEl = null;
+function showCalTooltip(e, html) {
+  if (!calTooltipEl) {
+    calTooltipEl = document.createElement('div');
+    calTooltipEl.style.position = 'fixed';
+    calTooltipEl.style.background = 'var(--sf)';
+    calTooltipEl.style.color = 'var(--tx)';
+    calTooltipEl.style.border = '1px solid var(--br)';
+    calTooltipEl.style.padding = '8px 12px';
+    calTooltipEl.style.borderRadius = 'var(--rs)';
+    calTooltipEl.style.fontSize = '11px';
+    calTooltipEl.style.boxShadow = '0 10px 25px rgba(15, 23, 42, 0.15)';
+    calTooltipEl.style.zIndex = '9999';
+    calTooltipEl.style.pointerEvents = 'none';
+    calTooltipEl.style.lineHeight = '1.4';
+    calTooltipEl.style.fontFamily = 'var(--fn)';
+    calTooltipEl.style.transition = 'opacity 0.1s ease';
+    document.body.appendChild(calTooltipEl);
+  }
+  calTooltipEl.innerHTML = html;
+  calTooltipEl.style.display = 'block';
+  calTooltipEl.style.opacity = '1';
+  
+  const rect = e.target.getBoundingClientRect();
+  let left = rect.left + (rect.width / 2) - (calTooltipEl.offsetWidth / 2);
+  let top = rect.top - calTooltipEl.offsetHeight - 8;
+  if (left < 10) left = 10;
+  if (left + calTooltipEl.offsetWidth > window.innerWidth - 10) {
+    left = window.innerWidth - calTooltipEl.offsetWidth - 10;
+  }
+  if (top < 10) {
+    top = rect.bottom + 8;
+  }
+  calTooltipEl.style.left = left + 'px';
+  calTooltipEl.style.top = top + 'px';
+}
+function hideCalTooltip() {
+  if (calTooltipEl) {
+    calTooltipEl.style.opacity = '0';
+    calTooltipEl.style.display = 'none';
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 // ASIGNATURAS VIEW
