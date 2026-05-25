@@ -1746,11 +1746,9 @@ function genId(){return'r'+Date.now().toString(36)+Math.random().toString(36).sl
 function isDark(){return window.matchMedia('(prefers-color-scheme:dark)').matches}
 function prio(r){
   if(r.status==='completado')return{lv:'completado',label:'Entregado',color:'var(--ok)',order:99};
-  const d=dL(r.dueDate),u=S.cfg?.urgDays??2,h=S.cfg?.highDays??4;
+  const d=dL(r.dueDate);
   if(d<0)return{lv:'vencido',label:'Vencido',color:'#ef4444',order:0};
-  if(d<=u)return{lv:'urgente',label:'Urgente',color:'var(--er)',order:1};
-  if(d<=h)return{lv:'alta',label:'Alta',color:'var(--or)',order:2};
-  if(d<=6)return{lv:'media',label:'Media',color:'var(--wa)',order:3};
+  if(d<=2)return{lv:'urgente',label:'Urgente',color:'var(--er)',order:1};
   return{lv:'normal',label:'Normal',color:'var(--ok)',order:4};
 }
 function sorted(arr){return[...arr].sort((a,b)=>{const pa=prio(a),pb=prio(b);if(pa.order!==pb.order)return pa.order-pb.order;return dL(a.dueDate)-dL(b.dueDate)})}
