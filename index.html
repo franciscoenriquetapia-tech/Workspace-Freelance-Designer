@@ -1435,6 +1435,7 @@ select:focus, input:focus, textarea:focus {
                 <option value="all">Todos los estados</option>
                 <option value="pendiente">Pendientes</option>
                 <option value="en_progreso">En progreso</option>
+                <option value="urgente">Urgentes</option>
                 <option value="completado">Completados</option>
               </select>
               
@@ -2538,7 +2539,11 @@ function renderCalendar(){
     R = R.filter(r => r.subject === fs);
   }
   if(fst !== 'all') {
-    R = R.filter(r => r.status === fst);
+    if(fst === 'urgente') {
+      R = R.filter(r => r.status !== 'completado' && (prio(r).lv === 'urgente' || prio(r).lv === 'vencido'));
+    } else {
+      R = R.filter(r => r.status === fst);
+    }
   }
 
   R.forEach(r=>{if(!r.dueDate)return;const d=new Date(r.dueDate+'T00:00:00');if(d.getFullYear()===year&&d.getMonth()===month){const k=d.getDate();(byDay[k]||(byDay[k]=[])).push(r)}});
@@ -2580,6 +2585,8 @@ function renderCalendar(){
         } else if (r.status === 'en_progreso') {
           badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
         }
+        
+        const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
         
         return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
       }).join('')}
