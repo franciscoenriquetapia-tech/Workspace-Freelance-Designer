@@ -1614,6 +1614,85 @@ select:focus, input:focus, textarea:focus {
   </div>
 </div>
 
+<!-- MODAL INFORMATIVO RECURSO -->
+<div class="modal-bg" id="modal-view-res">
+  <div class="modal" style="max-width:480px; padding:24px; border-radius:var(--rs);">
+    <div class="mhdr" style="margin-bottom:20px; border-bottom:1px solid var(--br); padding-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+      <span class="mtit" style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;"><i data-lucide="info" style="color:var(--pri);width:18px;height:18px;"></i>Detalle del Recurso</span>
+      <button class="mclose" onclick="closeViewRes()"><i data-lucide="x"></i></button>
+    </div>
+    
+    <div style="display:flex; flex-direction:column; gap:12px; font-family:var(--fn);">
+      <!-- Title -->
+      <div>
+        <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Título del Recurso</span>
+        <div id="v-title" style="font-size:13.5px; font-weight:700; color:var(--tx); margin-top:3px; line-height:1.4;"></div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:4px;">
+        <!-- Client -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Institución</span>
+          <div id="v-client" style="margin-top:4px;"></div>
+        </div>
+        <!-- Subject -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Asignatura</span>
+          <div id="v-subject" style="font-size:12.5px; font-weight:600; color:var(--tx); margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:4px;">
+        <!-- Kind -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Categoría / Recurso</span>
+          <div id="v-kind" style="font-size:12.5px; font-weight:600; color:var(--tx); margin-top:4px;"></div>
+        </div>
+        <!-- Tariff -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Tarifa Bruta</span>
+          <div id="v-tariff" style="font-size:13px; font-weight:700; color:var(--ok); margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:4px;">
+        <!-- Dates -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Asignado</span>
+          <div id="v-assigned" style="font-size:12px; font-weight:600; color:var(--tx); margin-top:4px;"></div>
+        </div>
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Fecha Límite</span>
+          <div id="v-due" style="font-size:12px; font-weight:600; color:var(--tx); margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:4px;">
+        <!-- Status -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Estado</span>
+          <div id="v-status" style="margin-top:4px;"></div>
+        </div>
+        <!-- D.I. -->
+        <div>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Código / D.I.</span>
+          <div id="v-di" style="font-size:12px; font-weight:600; color:var(--tx); margin-top:4px; font-family:var(--mo);"></div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div style="margin-top:4px;">
+        <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Notas / Indicaciones</span>
+        <div id="v-notes" style="font-size:11.5px; line-height:1.45; color:var(--t3); background:var(--s2); border:1px solid var(--br); padding:10px; border-radius:var(--rs); margin-top:4px; max-height:80px; overflow-y:auto; font-style:italic;"></div>
+      </div>
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--br); padding-top:14px; gap:8px;">
+      <button class="btn btn-p" onclick="closeViewRes()">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GESTIÓN DE PROYECTOS / CLIENTES -->
 <div class="modal-bg" id="modal-projects">
   <div class="modal" style="max-width:450px;">
@@ -2411,6 +2490,40 @@ function checkAndNotifyResource(r) {
 }
 
 function closeEdit(){editId=null; document.getElementById('modal-edit').classList.remove('on')}
+
+function openViewRes(id) {
+  const r = S.resources.find(item => item.id === id);
+  if (!r) return;
+  const c = CLIENTS.find(cl => cl.id === r.clientId);
+  const t = TIPOS[r.tipo] || {label:'Tipo 1',price:32000};
+  const kd = KINDS[r.kind] || {label: r.kind, icon: '📄'};
+  
+  document.getElementById('v-title').textContent = r.title;
+  document.getElementById('v-client').innerHTML = c ? `<span class="inst-badge b-${c.short.toLowerCase()}">${c.name}</span>` : 'Santo Tomás';
+  document.getElementById('v-subject').textContent = r.subject || 'Sin Asignatura';
+  document.getElementById('v-kind').textContent = `${kd.icon} ${kd.label}`;
+  document.getElementById('v-tariff').textContent = fM(t.price);
+  document.getElementById('v-assigned').textContent = r.assignedDate ? r.assignedDate.split('-').reverse().join('/') : '–';
+  document.getElementById('v-due').textContent = r.dueDate ? r.dueDate.split('-').reverse().join('/') : '–';
+  
+  // Status badge styling
+  let statusCls = 's-pending';
+  let statusText = 'Pendiente';
+  if(r.status==='completado'){ statusCls='s-completed'; statusText='Completado'; }
+  else if(r.status==='en_progreso'){ statusCls='s-progress'; statusText='En progreso'; }
+  else if(dL(r.dueDate) <= S.cfg.urgDays){ statusCls='s-urgent'; statusText='Urgente'; }
+  
+  document.getElementById('v-status').innerHTML = `<span class="status-badge ${statusCls}">${statusText}</span>`;
+  document.getElementById('v-di').textContent = r.assignedBy || '–';
+  document.getElementById('v-notes').textContent = r.notes || 'Sin indicaciones especiales registradas.';
+  
+  document.getElementById('modal-view-res').classList.add('on');
+  lucide.createIcons();
+}
+
+function closeViewRes() {
+  document.getElementById('modal-view-res').classList.remove('on');
+}
 function eAutoDue(){const v=document.getElementById('e-ass').value; if(v){const d=new Date(v); d.setDate(d.getDate()+7); document.getElementById('e-due').value=d.toISOString().split('T')[0]}}
 function saveEdit(){
   if(!editId)return;
@@ -2591,7 +2704,7 @@ function renderCalendar(){
           
           const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
           
-          return`<div class="cd-evt" style="background:${bg};color:${cl}" onclick="openEdit('${r.id}')" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
+          return`<div class="cd-evt" style="background:${bg};color:${cl}" onclick="openViewRes('${r.id}')" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
         }).join('')}
       </div>
     </div>`;
