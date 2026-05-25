@@ -2217,6 +2217,7 @@ function renderResources(){
   const fst = document.getElementById('fst').value;
   
   let R = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
+  R = [...R].reverse(); // Putting last registered first!
   if(fs!=='all') R = R.filter(r=>r.subject===fs);
   if(ft!=='all') R = R.filter(r=>r.tipo===ft);
   if(fst!=='all') R = R.filter(r=>r.status===fst);
