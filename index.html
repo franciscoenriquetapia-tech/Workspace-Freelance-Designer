@@ -1273,6 +1273,13 @@ select:focus, input:focus, textarea:focus {
                 <span class="search-icon"><i data-lucide="search" style="width:14px;height:14px;"></i></span>
                 <input type="text" class="search-input" id="search-db" placeholder="Buscar recurso..." oninput="renderTable()">
               </div>
+              <select id="dash-fs" onchange="renderTable()" style="width:140px;"></select>
+              <select id="dash-fst" onchange="renderTable()" style="width:120px;">
+                <option value="all">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="en_progreso">En progreso</option>
+                <option value="completado">Completado</option>
+              </select>
               <button class="btn btn-p" onclick="go('nueva')"><i data-lucide="plus"></i> Nuevo Recurso</button>
             </div>
           </div>
@@ -2097,16 +2104,31 @@ function renderDash(){
 
 // ══════════════════════════════════════════════════════════
 // TABLE RENDERING (RESOURCE VIEW)
-// ══════════════════════════════════════════════════════════
+function fillDashFilters(){
+  const sel=document.getElementById('dash-fs');
+  if(!sel)return;
+  const curSubj = sel.value;
+  const R_filtered = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
+  const subjs=[...new Set(R_filtered.map(r=>r.subject))].filter(Boolean);
+  sel.innerHTML='<option value="all">Todas las asignaturas</option>'+subjs.map(s=>`<option value="${s}"${s===curSubj?' selected':''}>${s}</option>`).join('');
+}
+
 function renderTable(){
+  fillDashFilters();
   const tbody = document.getElementById('db-table-body');
   if(!tbody)return;
   const searchQ = document.getElementById('search-db').value.toLowerCase();
+  const fs = document.getElementById('dash-fs')?.value || 'all';
+  const fst = document.getElementById('dash-fst')?.value || 'all';
   
   let R = cliRes(curClient);
+  R = [...R].reverse(); // Putting last registered first!
+  
   if(searchQ){
     R = R.filter(r=>r.title.toLowerCase().includes(searchQ) || r.subject.toLowerCase().includes(searchQ));
   }
+  if(fs!=='all') R = R.filter(r=>r.subject===fs);
+  if(fst!=='all') R = R.filter(r=>r.status===fst);
   
   const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
   if (dashPage > totalPages) dashPage = totalPages;
