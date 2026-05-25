@@ -749,12 +749,14 @@ select:focus, input:focus, textarea:focus {
 
 /* ── CALENDAR ── */
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
-.cal-day { background: var(--s2); border-radius: var(--rs); border: 1px solid var(--br); padding: 8px; height: 130px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; scrollbar-width: thin; }
-.cal-day::-webkit-scrollbar { width: 3px; }
-.cal-day::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+.cal-day { background: var(--s2); border-radius: var(--rs); border: 1px solid var(--br); padding: 8px; height: 130px; display: flex; flex-direction: column; overflow: hidden; }
 .cal-day.today { border-color: var(--pri); background: var(--prid); }
-.cdn { font-size: 11.5px; font-weight: 700; font-family: var(--mo); margin-bottom: 2px; color: var(--tx); }
-.cd-evt { font-size: 9.5px; padding: 3px 5px; border-radius: 4px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.2; border: 1px solid rgba(0,0,0,0.02); }
+.cdn { font-size: 11.5px; font-weight: 700; font-family: var(--mo); margin-bottom: 4px; color: var(--tx); flex-shrink: 0; }
+.cal-evts-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; }
+.cal-evts-list::-webkit-scrollbar { width: 3px; }
+.cal-evts-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+.cd-evt { font-size: 9.2px; padding: 4px 6px; border-radius: 4px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.25; border: 1px solid rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; display: block; }
+.cd-evt:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
 
 /* ── TIPO ROW ── */
 .trow { display: flex; align-items: center; gap: 9px; padding: 12px 0; border-bottom: 1px solid var(--br); }
@@ -2555,41 +2557,43 @@ function renderCalendar(){
     const evts=byDay[day]||[];
     html+=`<div class="cal-day${isToday?' today':''}">
       <div class="cdn">${day}</div>
-      ${evts.map(r=>{
-        const p=r.status==='completado'?{lv:'completado'}:prio(r);
-        
-        const KIND_COLORS = {
-          diagramacion: { bg: '#e0f2fe', cl: '#0369a1' },         // Sky blue
-          video_canva: { bg: '#fdf2f8', cl: '#be185d' },          // Canva Pink
-          interactivo_genially: { bg: '#faf5ff', cl: '#7e22ce' }, // Genially Purple
-          presentacion_ppt: { bg: '#fef3c7', cl: '#b45309' },     // PPT Gold/Amber
-          rise: { bg: '#ecfdf5', cl: '#047857' }                  // Rise Emerald Green
-        };
-        const kc = KIND_COLORS[r.kind] || { bg: 'var(--okl)', cl: 'var(--ok)' };
-        const bg = kc.bg;
-        const cl = kc.cl;
-        
-        const c=CLIENTS.find(c=>c.id===r.clientId);
-        const stLabels={pendiente:'Pendiente',en_progreso:'En progreso',completado:'Completado'};
-        const stLabel=stLabels[r.status]||r.status;
-        const formattedDate=r.dueDate?r.dueDate.split('-').reverse().join('/'):'Sin fecha';
-        
-        const titleEscaped = r.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        const tooltipHtml = `<strong>${titleEscaped}</strong><br><span style='color:var(--t3);'>Estado:</span> <strong>${stLabel}</strong><br><span style='color:var(--t3);'>Fecha Límite:</span> <strong>${formattedDate}</strong>`;
-        
-        let badgeStyle = 'background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); color: inherit;';
-        if (p.lv === 'urgente' || p.lv === 'vencido') {
-          badgeStyle = 'background: #ef4444; border: 1px solid #ef4444; color: #ffffff;';
-        } else if (r.status === 'completado') {
-          badgeStyle = 'background: #22c55e; border: 1px solid #22c55e; color: #ffffff;';
-        } else if (r.status === 'en_progreso') {
-          badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
-        }
-        
-        const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
-        
-        return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
-      }).join('')}
+      <div class="cal-evts-list">
+        ${evts.map(r=>{
+          const p=r.status==='completado'?{lv:'completado'}:prio(r);
+          
+          const KIND_COLORS = {
+            diagramacion: { bg: '#e0f2fe', cl: '#0369a1' },         // Sky blue
+            video_canva: { bg: '#fdf2f8', cl: '#be185d' },          // Canva Pink
+            interactivo_genially: { bg: '#faf5ff', cl: '#7e22ce' }, // Genially Purple
+            presentacion_ppt: { bg: '#fef3c7', cl: '#b45309' },     // PPT Gold/Amber
+            rise: { bg: '#ecfdf5', cl: '#047857' }                  // Rise Emerald Green
+          };
+          const kc = KIND_COLORS[r.kind] || { bg: 'var(--okl)', cl: 'var(--ok)' };
+          const bg = kc.bg;
+          const cl = kc.cl;
+          
+          const c=CLIENTS.find(c=>c.id===r.clientId);
+          const stLabels={pendiente:'Pendiente',en_progreso:'En progreso',completado:'Completado'};
+          const stLabel=stLabels[r.status]||r.status;
+          const formattedDate=r.dueDate?r.dueDate.split('-').reverse().join('/'):'Sin fecha';
+          
+          const titleEscaped = r.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          const tooltipHtml = `<strong>${titleEscaped}</strong><br><span style='color:var(--t3);'>Estado:</span> <strong>${stLabel}</strong><br><span style='color:var(--t3);'>Fecha Límite:</span> <strong>${formattedDate}</strong>`;
+          
+          let badgeStyle = 'background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); color: inherit;';
+          if (p.lv === 'urgente' || p.lv === 'vencido') {
+            badgeStyle = 'background: #ef4444; border: 1px solid #ef4444; color: #ffffff;';
+          } else if (r.status === 'completado') {
+            badgeStyle = 'background: #22c55e; border: 1px solid #22c55e; color: #ffffff;';
+          } else if (r.status === 'en_progreso') {
+            badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
+          }
+          
+          const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
+          
+          return`<div class="cd-evt" style="background:${bg};color:${cl}" onclick="openEdit('${r.id}')" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
+        }).join('')}
+      </div>
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
