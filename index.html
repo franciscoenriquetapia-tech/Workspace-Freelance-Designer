@@ -1936,11 +1936,20 @@ function renderTable(){
     if (R.length <= PAGE_SIZE) {
       pagContainer.innerHTML = '';
     } else {
+      let buttonsHtml = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const isActive = i === dashPage;
+        const bg = isActive ? 'var(--pri)' : 'var(--s2)';
+        const fg = isActive ? '#ffffff' : 'var(--tx)';
+        const bc = isActive ? 'var(--pri)' : 'var(--br)';
+        buttonsHtml += `<button class="btn btn-sm" onclick="goToDashPage(${i})" style="padding:6px 12px;height:32px;background:${bg};color:${fg};border-color:${bc};font-weight:700;cursor:pointer;">${i}</button>`;
+      }
       pagContainer.innerHTML = `
-        <span style="font-size:12px;color:var(--t3);font-weight:600;">Página ${dashPage} de ${totalPages} (${R.length} recursos)</span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-sec btn-sm" onclick="dashPrevPage()" ${dashPage===1?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left"></i></button>
-          <button class="btn btn-sec btn-sm" onclick="dashNextPage()" ${dashPage===totalPages?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-right"></i></button>
+        <span style="font-size:12px;color:var(--t3);font-weight:600;">${R.length} recursos en total</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button class="btn btn-sec btn-sm" onclick="goToDashPage(${dashPage - 1})" ${dashPage===1?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i data-lucide="chevron-left"></i></button>
+          ${buttonsHtml}
+          <button class="btn btn-sec btn-sm" onclick="goToDashPage(${dashPage + 1})" ${dashPage===totalPages?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i data-lucide="chevron-right"></i></button>
         </div>
       `;
     }
@@ -1948,23 +1957,9 @@ function renderTable(){
   lucide.createIcons();
 }
 
-function dashPrevPage() {
-  if (dashPage > 1) {
-    dashPage--;
-    renderTable();
-  }
-}
-function dashNextPage() {
-  let R = cliRes(curClient);
-  const searchQ = document.getElementById('search-db').value.toLowerCase();
-  if(searchQ){
-    R = R.filter(r=>r.title.toLowerCase().includes(searchQ) || r.subject.toLowerCase().includes(searchQ));
-  }
-  const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
-  if (dashPage < totalPages) {
-    dashPage++;
-    renderTable();
-  }
+function goToDashPage(page) {
+  dashPage = page;
+  renderTable();
 }
 
 function rowHtml(r){
@@ -2026,11 +2021,20 @@ function renderResources(){
     if (R.length <= PAGE_SIZE) {
       pagContainer.innerHTML = '';
     } else {
+      let buttonsHtml = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const isActive = i === recPage;
+        const bg = isActive ? 'var(--pri)' : 'var(--s2)';
+        const fg = isActive ? '#ffffff' : 'var(--tx)';
+        const bc = isActive ? 'var(--pri)' : 'var(--br)';
+        buttonsHtml += `<button class="btn btn-sm" onclick="goToRecPage(${i})" style="padding:6px 12px;height:32px;background:${bg};color:${fg};border-color:${bc};font-weight:700;cursor:pointer;">${i}</button>`;
+      }
       pagContainer.innerHTML = `
-        <span style="font-size:12px;color:var(--t3);font-weight:600;">Página ${recPage} de ${totalPages} (${R.length} recursos)</span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-sec btn-sm" onclick="recPrevPage()" ${recPage===1?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left"></i></button>
-          <button class="btn btn-sec btn-sm" onclick="recNextPage()" ${recPage===totalPages?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-right"></i></button>
+        <span style="font-size:12px;color:var(--t3);font-weight:600;">${R.length} recursos en total</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button class="btn btn-sec btn-sm" onclick="goToRecPage(${recPage - 1})" ${recPage===1?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i data-lucide="chevron-left"></i></button>
+          ${buttonsHtml}
+          <button class="btn btn-sec btn-sm" onclick="goToRecPage(${recPage + 1})" ${recPage===totalPages?'disabled':''} style="padding:6px 10px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i data-lucide="chevron-right"></i></button>
         </div>
       `;
     }
@@ -2038,27 +2042,9 @@ function renderResources(){
   lucide.createIcons();
 }
 
-function recPrevPage() {
-  if (recPage > 1) {
-    recPage--;
-    renderResources();
-  }
-}
-function recNextPage() {
-  const fs = document.getElementById('fs').value;
-  const ft = document.getElementById('ft').value;
-  const fst = document.getElementById('fst').value;
-  
-  let R = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
-  if(fs!=='all') R = R.filter(r=>r.subject===fs);
-  if(ft!=='all') R = R.filter(r=>r.tipo===ft);
-  if(fst!=='all') R = R.filter(r=>r.status===fst);
-  
-  const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
-  if (recPage < totalPages) {
-    recPage++;
-    renderResources();
-  }
+function goToRecPage(page) {
+  recPage = page;
+  renderResources();
 }
 
 function fillFilters(){
