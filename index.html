@@ -2512,7 +2512,11 @@ function renderCalendar(){
         const bg=p.lv==='urgente'||p.lv==='vencido'?'var(--erl)':p.lv==='alta'?'var(--orl)':'var(--okl)';
         const cl=p.lv==='urgente'||p.lv==='vencido'?'var(--er)':p.lv==='alta'?'var(--or)':'var(--ok)';
         const c=CLIENTS.find(c=>c.id===r.clientId);
-        return`<div class="cd-evt" style="background:${bg};color:${cl}" title="${r.title}">${c?`[${c.short}] `:''} ${r.title}</div>`;
+        const stLabels={pendiente:'Pendiente',en_progreso:'En progreso',completado:'Completado'};
+        const stLabel=stLabels[r.status]||r.status;
+        const formattedDate=r.dueDate?r.dueDate.split('-').reverse().join('/'):'Sin fecha';
+        const tooltip=`${r.title}\nEstado: ${stLabel}\nFecha Límite: ${formattedDate}`;
+        return`<div class="cd-evt" style="background:${bg};color:${cl}" title="${tooltip}">${c?`[${c.short}] `:''} ${r.title}</div>`;
       }).join('')}
     </div>`;
   }
