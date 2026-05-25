@@ -1180,7 +1180,7 @@ select:focus, input:focus, textarea:focus {
       </nav>
       
       <!-- Prominent Blue "+ Nuevo Proyecto" Button at the bottom of nav list -->
-      <button class="btn btn-p" style="width:100%; padding:12px; margin-top:20px; font-size:13px; font-weight:700; border-radius:var(--rs); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);" onclick="go('nueva')">
+      <button class="btn btn-p" style="width:100%; padding:12px; margin-top:20px; font-size:13px; font-weight:700; border-radius:var(--rs); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);" onclick="openProjects()">
         <i data-lucide="plus" style="width:16px; height:16px; stroke-width:3px;"></i> Nuevo Proyecto
       </button>
     </div>
@@ -1197,12 +1197,7 @@ select:focus, input:focus, textarea:focus {
         <h2 class="hdr-title" id="active-title">Panel General</h2>
         
         <!-- Client Filter Pills -->
-        <div class="cbar">
-          <button class="ctab c-all on" id="ctab-all" onclick="setClient('all')">Todos</button>
-          <button class="ctab c-0" id="ctab-0" onclick="setClient(0)">Santo Tomás</button>
-          <button class="ctab c-1" id="ctab-1" onclick="setClient(1)">UNIACC</button>
-          <button class="ctab c-2" id="ctab-2" onclick="setClient(2)">INACAP</button>
-        </div>
+        <div class="cbar" id="header-cbar"></div>
       </div>
       
       <div class="hdr-right">
@@ -1591,15 +1586,56 @@ select:focus, input:focus, textarea:focus {
   </div>
 </div>
 
+<!-- MODAL GESTIÓN DE PROYECTOS / CLIENTES -->
+<div class="modal-bg" id="modal-projects">
+  <div class="modal" style="max-width:450px;">
+    <div class="mhdr">
+      <span class="mtit" style="display:flex;align-items:center;gap:8px;"><i data-lucide="folder-plus" style="color:var(--pri);width:18px;height:18px;"></i>Proyectos / Clientes</span>
+      <button class="mclose" onclick="closeProjects()"><i data-lucide="x"></i></button>
+    </div>
+    
+    <div style="margin-bottom:16px;">
+      <div class="fl" style="margin-bottom:8px;">Clientes Activos</div>
+      <div id="project-list" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; padding-right:4px;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--br); padding-top:16px;">
+      <div class="fl" style="margin-bottom:10px; color:var(--pri);">Nuevo Cliente / Sección</div>
+      <div class="fg" style="margin-bottom:10px;">
+        <label class="fl">Nombre *</label>
+        <input type="text" id="new-c-name" placeholder="Ej: Universidad de Chile">
+      </div>
+      <div class="fg2" style="margin-bottom:12px; gap:8px;">
+        <div class="fg">
+          <label class="fl">Sigla (2-3 letras) *</label>
+          <input type="text" id="new-c-short" placeholder="Ej: UCH" maxlength="3">
+        </div>
+        <div class="fg">
+          <label class="fl">Color *</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="color" id="new-c-color" value="#4F46E5" style="padding:0; width:45px; height:36px; border:none; cursor:pointer;" oninput="document.getElementById('new-c-color-val').textContent=this.value.toUpperCase()">
+            <span style="font-size:11px; font-family:var(--mo); color:var(--t3);" id="new-c-color-val">#4F46E5</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-p" style="width:100%;" onclick="addClient()"><i data-lucide="plus"></i> Crear Cliente</button>
+      <div id="new-c-msg" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════════════════
-const CLIENTS=[
+const DEFAULT_CLIENTS=[
   {id:0,name:'Santo Tomás',short:'ST',color:'var(--c0)',colorVal:'#3525cd',light:'var(--c0l)'},
   {id:1,name:'UNIACC',short:'UN',color:'var(--c1)',colorVal:'#0ea5e9',light:'var(--c1l)'},
   {id:2,name:'INACAP',short:'IN',color:'var(--c2)',colorVal:'#ef4444',light:'var(--c2l)'},
 ];
+let CLIENTS=[...DEFAULT_CLIENTS];
 const TIPOS={
   tipo1:{label:'Tipo 1 (Complejo)',price:32000,desc:'Videos, cápsulas, interactivos'},
   tipo2:{label:'Tipo 2 (Estándar)',price:28000,desc:'Evaluativas, prácticas, descargables'},
@@ -1672,8 +1708,18 @@ let dashPage=1;
 let recPage=1;
 const PAGE_SIZE=10;
 
-function load(){const d=localStorage.getItem('rfust_v5');if(d){try{const p=JSON.parse(d);S={...S,...p};if(!S.subjects||S.subjects.length<3)S.subjects=CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]])}catch(e){}}}
-function save(){localStorage.setItem('rfust_v5',JSON.stringify(S))}
+function load(){
+  const cl=localStorage.getItem('rfust_clients_v5');
+  if(cl){try{CLIENTS=JSON.parse(cl)}catch(e){}}
+  const d=localStorage.getItem('rfust_v5');
+  if(d){try{const p=JSON.parse(d);S={...S,...p};if(!S.subjects||S.subjects.length<CLIENTS.length){
+    S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
+  }}catch(e){}}
+}
+function save(){
+  localStorage.setItem('rfust_v5',JSON.stringify(S));
+  localStorage.setItem('rfust_clients_v5',JSON.stringify(CLIENTS));
+}
 
 // ══════════════════════════════════════════════════════════
 // UTILS
@@ -1703,8 +1749,7 @@ function setClient(cli){
   curClient=cli;
   dashPage=1;
   recPage=1;
-  document.querySelectorAll('.ctab').forEach(el=>el.classList.remove('on'));
-  document.getElementById(cli==='all'?'ctab-all':`ctab-${cli}`).classList.add('on');
+  renderDynamicHeaderCbar();
   updateClientBadges();
   rerender();
 }
@@ -1713,6 +1758,7 @@ function updateClientBadges(){
   document.getElementById('cb-all')?.textContent && (document.getElementById('cb-all').textContent=R.length);
 }
 function rerender(){
+  renderDynamicHeaderCbar();
   const cur=document.querySelector('.nav-item.on');
   if(!cur)return;
   const id=cur.id.replace('tab-','');
@@ -1786,6 +1832,129 @@ function toggleImport(){
 function viewClientAsig(clientId) {
   setClient(clientId);
   go('asignaturas');
+}
+
+function renderDynamicHeaderCbar() {
+  const container = document.getElementById('header-cbar');
+  if (!container) return;
+  
+  let html = `<button class="ctab c-all${curClient==='all'?' on':''}" id="ctab-all" onclick="setClient('all')">Todos</button>`;
+  CLIENTS.forEach(c => {
+    const isSel = curClient === c.id ? ' on' : '';
+    html += `<button class="ctab c-${c.id}${isSel}" id="ctab-${c.id}" onclick="setClient(${c.id})" style="--c${c.id}: ${c.colorVal}; --c${c.id}l: ${c.colorVal}1a; --c${c.id}t: ${c.colorVal};">${c.name}</button>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderFormClientButtons() {
+  const container = document.getElementById('f-cli-btns');
+  if (!container) return;
+  
+  let html = '';
+  CLIENTS.forEach(c => {
+    const isSel = fCurCli === c.id ? 'style="background:'+c.colorVal+';color:#fff;border-color:'+c.colorVal+';"' : '';
+    html += `<button class="btn" id="fcb-${c.id}" onclick="fSelectCli(${c.id})" ${isSel}>${c.name}</button>`;
+  });
+  container.innerHTML = html;
+}
+
+function openProjects() {
+  renderProjects();
+  document.getElementById('modal-projects').classList.add('on');
+  lucide.createIcons();
+}
+
+function closeProjects() {
+  document.getElementById('modal-projects').classList.remove('on');
+}
+
+function renderProjects() {
+  const container = document.getElementById('project-list');
+  if (!container) return;
+  
+  container.innerHTML = CLIENTS.map(c => {
+    const count = S.resources.filter(r => r.clientId === c.id).length;
+    const deleteBtn = CLIENTS.length > 1 
+      ? `<button class="btn btn-circle btn-circle-delete" onclick="deleteClient(${c.id})" style="width:28px; height:28px;" title="Eliminar ${c.name}"><i data-lucide="trash-2" style="width:12px; height:12px;"></i></button>`
+      : '';
+    return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border:1px solid var(--br); border-radius:var(--rs); background:var(--s2); margin-bottom: 6px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:8px; height:8px; border-radius:50%; background:${c.colorVal};"></span>
+        <div>
+          <strong style="font-size:12.5px;">${c.name} (${c.short})</strong>
+          <div style="font-size:10.5px; color:var(--t3);">${count} recursos registrados</div>
+        </div>
+      </div>
+      ${deleteBtn}
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function addClient() {
+  const name = document.getElementById('new-c-name').value.trim();
+  const short = document.getElementById('new-c-short').value.trim().toUpperCase();
+  const colorVal = document.getElementById('new-c-color').value;
+  const msg = document.getElementById('new-c-msg');
+  
+  if (!name || !short) {
+    msg.innerHTML = '<div class="al al-w">⚠️ Nombre y Sigla obligatorios</div>';
+    return;
+  }
+  
+  const newId = CLIENTS.length ? Math.max(...CLIENTS.map(c => c.id)) + 1 : 0;
+  
+  CLIENTS.push({
+    id: newId,
+    name,
+    short,
+    color: `var(--c${newId})`,
+    colorVal,
+    light: `var(--c${newId}l)`
+  });
+  
+  S.subjects[newId] = ['Asignatura General'];
+  
+  save();
+  document.getElementById('new-c-name').value = '';
+  document.getElementById('new-c-short').value = '';
+  msg.innerHTML = '<div class="al al-g">✅ Cliente creado con éxito</div>';
+  
+  renderProjects();
+  renderDynamicHeaderCbar();
+  renderFormClientButtons();
+  
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `:root { --c${newId}: ${colorVal}; --c${newId}l: ${colorVal}1a; --c${newId}t: ${colorVal}; }`;
+  document.head.appendChild(styleEl);
+  
+  setTimeout(() => { msg.innerHTML = ''; }, 2000);
+}
+
+function deleteClient(id) {
+  const c = CLIENTS.find(cl => cl.id === id);
+  if (!c) return;
+  
+  const count = S.resources.filter(r => r.clientId === id).length;
+  let confirmMsg = `¿Seguro que deseas eliminar el cliente "${c.name}"?`;
+  if (count > 0) {
+    confirmMsg += `\nEsto también eliminará permanentemente los ${count} recursos asociados a este cliente.`;
+  }
+  
+  if (!confirm(confirmMsg)) return;
+  
+  CLIENTS = CLIENTS.filter(cl => cl.id !== id);
+  S.resources = S.resources.filter(r => r.clientId !== id);
+  
+  if (curClient === id) {
+    curClient = 'all';
+  }
+  
+  save();
+  renderProjects();
+  renderDynamicHeaderCbar();
+  renderFormClientButtons();
+  rerender();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2204,9 +2373,10 @@ function saveEdit(){
 // ══════════════════════════════════════════════════════════
 let fCurCli=0;
 function initForm(){
-  fCurCli=curClient==='all'?0:curClient;
+  fCurCli=curClient==='all' ? (CLIENTS[0] ? CLIENTS[0].id : 0) : curClient;
+  renderFormClientButtons();
   updateFCliBtn();
-  document.getElementById('f-subj').innerHTML=S.subjects[fCurCli].map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('f-subj').innerHTML=(S.subjects[fCurCli] || []).map(s=>`<option>${s}</option>`).join('');
   if(!document.getElementById('f-ass').value){document.getElementById('f-ass').value=new Date().toISOString().split('T')[0]; fAutoDue()}
   renderFormPricing(fCurCli);
   lucide.createIcons();
@@ -2215,7 +2385,7 @@ function fSelectCli(cid){
   fCurCli=cid;
   updateFCliBtn();
   document.getElementById('f-cli').value=cid;
-  document.getElementById('f-subj').innerHTML=S.subjects[cid].map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('f-subj').innerHTML=(S.subjects[cid] || []).map(s=>`<option>${s}</option>`).join('');
   renderFormPricing(cid);
 }
 function updateFCliBtn(){
@@ -2706,14 +2876,24 @@ function generateDefaultSantoTomasResources() {
 // ══════════════════════════════════════════════════════════
 load();
 // Enforce the custom subjects layout on boot
-S.subjects = CLIENTS.map((_, i) => [...DEF_SUBJECTS[i]]);
-// Pre-populate database with default Santo Tomás welcoming and closing resources
-S.resources = generateDefaultSantoTomasResources();
+S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
+// Pre-populate database with default Santo Tomás welcoming and closing resources if empty
+if (!S.resources || S.resources.length === 0) {
+  S.resources = generateDefaultSantoTomasResources();
+}
 save();
+renderDynamicHeaderCbar();
+// Dynamically inject styling for saved clients colors
+CLIENTS.forEach(c => {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `:root { --c${c.id}: ${c.colorVal}; --c${c.id}l: ${c.colorVal}1a; --c${c.id}t: ${c.colorVal}; }`;
+  document.head.appendChild(styleEl);
+});
 updateDot();
 renderDash();
 fillFilters();
 document.getElementById('modal-edit').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEdit()});
+document.getElementById('modal-projects').addEventListener('click',e=>{if(e.target===e.currentTarget)closeProjects()});
 
 // Initialize modern Lucide flat icons globally
 lucide.createIcons();
