@@ -754,7 +754,7 @@ select:focus, input:focus, textarea:focus {
 .cal-day::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
 .cal-day.today { border-color: var(--pri); background: var(--prid); }
 .cdn { font-size: 11.5px; font-weight: 700; font-family: var(--mo); margin-bottom: 2px; color: var(--tx); }
-.cd-evt { font-size: 9.5px; padding: 5px 7px; border-radius: 4px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.25; border: 1px solid rgba(0,0,0,0.03); }
+.cd-evt { font-size: 9.5px; padding: 3px 5px; border-radius: 4px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.2; border: 1px solid rgba(0,0,0,0.02); }
 
 /* ── TIPO ROW ── */
 .trow { display: flex; align-items: center; gap: 9px; padding: 12px 0; border-bottom: 1px solid var(--br); }
@@ -1278,6 +1278,7 @@ select:focus, input:focus, textarea:focus {
                 <option value="all">Todos los estados</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="en_progreso">En progreso</option>
+                <option value="urgente">Urgente</option>
                 <option value="completado">Completado</option>
               </select>
               <button class="btn btn-p" onclick="go('nueva')"><i data-lucide="plus"></i> Nuevo Recurso</button>
@@ -1335,6 +1336,7 @@ select:focus, input:focus, textarea:focus {
                 <option value="all">Todos</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="en_progreso">En progreso</option>
+                <option value="urgente">Urgente</option>
                 <option value="completado">Completado</option>
               </select>
               <button class="btn btn-p" onclick="go('nueva')"><i data-lucide="plus"></i> Registrar</button>
@@ -2132,7 +2134,13 @@ function renderTable(){
     R = R.filter(r=>r.title.toLowerCase().includes(searchQ) || r.subject.toLowerCase().includes(searchQ));
   }
   if(fs!=='all') R = R.filter(r=>r.subject===fs);
-  if(fst!=='all') R = R.filter(r=>r.status===fst);
+  if(fst!=='all') {
+    if(fst==='urgente') {
+      R = R.filter(r => r.status !== 'completado' && (prio(r).lv === 'urgente' || prio(r).lv === 'vencido'));
+    } else {
+      R = R.filter(r => r.status === fst);
+    }
+  }
   
   const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
   if (dashPage > totalPages) dashPage = totalPages;
@@ -2220,7 +2228,13 @@ function renderResources(){
   R = [...R].reverse(); // Putting last registered first!
   if(fs!=='all') R = R.filter(r=>r.subject===fs);
   if(ft!=='all') R = R.filter(r=>r.tipo===ft);
-  if(fst!=='all') R = R.filter(r=>r.status===fst);
+  if(fst!=='all') {
+    if(fst==='urgente') {
+      R = R.filter(r => r.status !== 'completado' && (prio(r).lv === 'urgente' || prio(r).lv === 'vencido'));
+    } else {
+      R = R.filter(r => r.status === fst);
+    }
+  }
   
   const totalPages = Math.ceil(R.length / PAGE_SIZE) || 1;
   if (recPage > totalPages) recPage = totalPages;
@@ -2567,14 +2581,7 @@ function renderCalendar(){
           badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
         }
         
-        const clientText = c ? `<span style="font-size:7.5px; font-weight:800; opacity:0.85; letter-spacing:0.3px; text-transform:uppercase;">${c.short}</span>` : '';
-        return`<div class="cd-evt" style="background:${bg};color:${cl}; display:flex; flex-direction:column; gap:3px;" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">
-          <div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom: 1px solid rgba(0,0,0,0.03); padding-bottom: 2px;">
-            ${statusBadge}
-            ${clientText}
-          </div>
-          <div style="font-size:9.2px; font-weight:600; line-height:1.2; padding-top:1px;">${r.title}</div>
-        </div>`;
+        return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
       }).join('')}
     </div>`;
   }
