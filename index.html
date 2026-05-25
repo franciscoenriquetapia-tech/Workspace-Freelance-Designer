@@ -1,0 +1,2534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResourceFlow · Management Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --bg: #EDEBF8; /* Beautiful periwinkle grey canvas background from Google Stitch */
+  --sf: #ffffff; /* Card/Container white background */
+  --s2: #F4F2FB; /* Very soft lilac tint for subtle sections and select inputs */
+  --s3: #E8E5F5; /* Periwinkle highlight */
+  --br: rgba(15, 23, 42, 0.08); /* Clean modern soft slate border */
+  --brs: rgba(15, 23, 42, 0.16);
+  --tx: #0F172A; /* Deep Slate Navy primary text from Google Stitch */
+  --t2: #475569; /* Slate grey secondary text */
+  --t3: #64748B; /* Slate grey muted label / neutral icon from Google Stitch */
+  
+  --pri: #4F46E5; /* Vibrant indigo primary accent from Google Stitch */
+  --pril: rgba(79, 70, 229, 0.08);
+  --prid: rgba(79, 70, 229, 0.04);
+  
+  --ok: #10B981;
+  --okl: rgba(16, 185, 129, 0.1);
+  --wa: #F59E0B;
+  --wal: rgba(245, 158, 11, 0.1);
+  --er: #EF4444;
+  --erl: rgba(239, 68, 68, 0.1);
+  --or: #F97316;
+  --orl: rgba(249, 115, 22, 0.1);
+  
+  --r: 16px; /* Elegant 16px border-radius for cards */
+  --rs: 8px; /* 8px border-radius for buttons and inputs */
+  --rxs: 6px;
+  
+  --fn: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --mo: 'JetBrains Mono', monospace;
+  
+  /* CLIENTES */
+  --c0: #4F46E5; --c0l: rgba(79, 70, 229, 0.1); --c0t: #4F46E5; /* ST */
+  --c1: #0EA5E9; --c1l: rgba(14, 165, 233, 0.1); --c1t: #0EA5E9; /* UNIACC */
+  --c2: #EF4444; --c2l: rgba(239, 68, 68, 0.1); --c2t: #EF4444; /* INACAP */
+}
+
+@media(prefers-color-scheme:dark){:root {
+  --bg: #0B0E17; /* Deepest dark slate */
+  --sf: #121824; /* Dark slate card background */
+  --s2: #1E293B; /* Slate 800 */
+  --s3: #334155; /* Slate 700 */
+  --br: rgba(255, 255, 255, 0.08);
+  --brs: rgba(255, 255, 255, 0.16);
+  --tx: #F8FAFC; /* Slate 50 */
+  --t2: #94A3B8; /* Slate 400 */
+  --t3: #64748B; /* Slate 500 */
+  --pri: #6366F1; /* Lighter Indigo Tertiary Accent */
+  --pril: rgba(99, 102, 241, 0.15);
+  --prid: rgba(99, 102, 241, 0.08);
+  --okl: rgba(16, 185, 129, 0.15);
+  --wal: rgba(245, 158, 11, 0.15);
+  --erl: rgba(239, 68, 68, 0.18);
+  --orl: rgba(249, 115, 22, 0.15);
+}}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--fn);
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── MODERN ICON GENERAL STYLES ── */
+.lucide {
+  stroke-width: 2px;
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ── APP LAYOUT ── */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 250px;
+  background: var(--sf);
+  border-right: 1px solid var(--br);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 100;
+}
+.brand {
+  margin-bottom: 32px;
+  padding-left: 8px;
+}
+.brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pri);
+  letter-spacing: -0.03em;
+  font-family: var(--fn);
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--t3);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t2);
+  background: none;
+  border: none;
+  border-radius: var(--rs);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.nav-item:hover {
+  background: var(--s2);
+  color: var(--tx);
+}
+.nav-item.on {
+  background: var(--pri); /* Premium solid Indigo background */
+  color: #ffffff; /* White text for active state */
+}
+.nav-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--br);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── CONTENT AREA ── */
+.content-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+.hdr {
+  background: var(--sf);
+  border-bottom: 1px solid var(--br);
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+.hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.hdr-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* Pill Client Selector in Header */
+.cbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--s2);
+  padding: 4px;
+  border-radius: var(--rs);
+}
+.ctab {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--rxs);
+  background: none;
+  color: var(--t2);
+  white-space: nowrap;
+  transition: 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ctab:hover { color: var(--tx); }
+.ctab.on {
+  background: var(--sf);
+  color: var(--tx);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+.ctab.c-all.on {
+  background: var(--pri);
+  color: #ffffff;
+}
+.ctab.c-0.on { color: var(--c0); }
+.ctab.c-1.on { color: var(--c1); }
+.ctab.c-2.on { color: var(--c2); }
+
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ibtn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--rs);
+  border: 1px solid var(--br);
+  background: var(--sf);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.15s;
+  position: relative;
+  color: var(--t2);
+}
+.ibtn:hover {
+  background: var(--s2);
+  border-color: var(--brs);
+}
+.profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--s3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── MAIN CONTENT ── */
+.main {
+  padding: 24px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 20px;
+  transition: 0.15s;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+}
+
+/* ── KPI GRID ── */
+.kgrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 20px;
+  transition: 0.15s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 110px;
+  position: relative;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+}
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t3); /* Muted slate from Google Stitch */
+}
+.kv {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--tx);
+  line-height: 1.1;
+  font-family: var(--fn);
+  margin-top: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.ks {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 4px;
+}
+.kbadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  background: var(--okl);
+  color: var(--ok);
+}
+.kicon {
+  color: var(--t3);
+  display: inline-flex;
+}
+
+/* Solid Indigo Accent KPI Card matching the spec */
+.kpi-accent {
+  background: var(--pri) !important;
+  border-color: var(--pri) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25) !important;
+}
+.kpi-accent .kl, .kpi-accent .ks, .kpi-accent .kicon {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+.kpi-accent .kv {
+  color: #ffffff !important;
+}
+
+/* ── MIDDLE GRID ── */
+.mid-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.chwrap {
+  position: relative;
+  height: 200px;
+  margin-top: 12px;
+}
+
+/* ── INSTITUTION LIST ── */
+.inst-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.inst-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--br);
+  border-radius: var(--rs);
+  background: var(--sf);
+  transition: 0.15s;
+}
+.inst-item:hover {
+  border-color: var(--brs);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+.inst-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.inst-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #ffffff;
+}
+.inst-info {
+  display: flex;
+  flex-direction: column;
+}
+.inst-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tx);
+}
+.inst-sub {
+  font-size: 11px;
+  color: var(--t3);
+}
+.inst-metrics {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.inst-metric-item {
+  display: flex;
+  flex-direction: column;
+}
+.inst-m-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--t3);
+  letter-spacing: 0.05em;
+}
+.inst-m-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tx);
+}
+.inst-chevron {
+  color: var(--t3);
+  display: inline-flex;
+  margin-left: 8px;
+}
+
+/* ── TABLE VIEW (Gestión de Recursos) ── */
+.db-table-card {
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-top: 24px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+}
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.table-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-input {
+  padding: 8px 12px 8px 34px;
+  font-size: 12.5px;
+  background: var(--s2);
+  border: 1px solid var(--br);
+  border-radius: var(--rs);
+  outline: none;
+  width: 200px;
+  transition: 0.2s ease;
+  font-family: var(--fn);
+  color: var(--tx);
+}
+.search-input:focus {
+  border-color: var(--pri);
+  background: var(--sf);
+  width: 250px;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+.search-icon {
+  position: absolute;
+  left: 11px;
+  display: inline-flex;
+  color: var(--t3);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--rs);
+  border: 1px solid var(--br);
+}
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.db-table th {
+  background: var(--s2);
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--t3);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--br);
+}
+.db-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--br);
+  vertical-align: middle;
+}
+.db-table tr:last-child td {
+  border-bottom: none;
+}
+.db-table tr:hover td {
+  background: var(--prid);
+}
+.cell-title {
+  font-weight: 600;
+  color: var(--tx);
+}
+.cell-subtitle {
+  font-size: 11px;
+  color: var(--t3);
+  font-family: var(--mo);
+  margin-top: 2px;
+}
+
+/* Institutional badges */
+.inst-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.inst-badge.b-ust { background: var(--c0l); color: var(--c0); }
+.inst-badge.b-uni { background: var(--c1l); color: var(--c1); }
+.inst-badge.b-inacap { background: var(--c2l); color: var(--c2); }
+
+/* Status badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-badge.s-completed { background: var(--okl); color: var(--ok); }
+.status-badge.s-progress { background: var(--pril); color: var(--pri); }
+.status-badge.s-pending { background: var(--wal); color: var(--wa); }
+.status-badge.s-urgent { background: var(--erl); color: var(--er); }
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── FORM ── */
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--t3); }
+select, input, textarea {
+  font-family: var(--fn);
+  font-size: 13px;
+  color: var(--tx);
+  background: var(--s2);
+  border: 1px solid var(--br);
+  border-radius: var(--rs);
+  padding: 10px 14px;
+  width: 100%;
+  outline: none;
+  transition: 0.15s;
+}
+select:focus, input:focus, textarea:focus {
+  border-color: var(--pri);
+  background: var(--sf);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+.fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg2 .full { grid-column: 1/-1; }
+
+/* ── PREMIUM STITCH BUTTONS ── */
+.btn {
+  font-family: var(--fn);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--rs);
+  border: 1px solid var(--br);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--tx);
+  background: var(--sf);
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--s2);
+  border-color: var(--brs);
+  transform: translateY(-1px);
+}
+/* Primary Button: Solid Accent */
+.btn-p {
+  background: var(--pri);
+  color: #ffffff;
+  border-color: var(--pri);
+}
+.btn-p:hover {
+  background: #3c33cc;
+  border-color: #3c33cc;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+/* Secondary Button: Soft Light Indigo */
+.btn-sec {
+  background: var(--s2);
+  color: var(--tx);
+  border-color: var(--s2);
+}
+.btn-sec:hover {
+  background: var(--s3);
+  border-color: var(--s3);
+}
+/* Inverted Button: Dark Navy */
+.btn-inv {
+  background: #0F172A;
+  color: #ffffff;
+  border-color: #0F172A;
+}
+.btn-inv:hover {
+  background: #1E293B;
+  border-color: #1E293B;
+}
+/* Outlined Button: Border with Transparent Background */
+.btn-out {
+  background: transparent;
+  color: #0F172A;
+  border: 1.5px solid #0F172A;
+}
+.btn-out:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+/* ── PREMIUM STITCH CIRCULAR BUTTONS ── */
+.btn-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #ffffff !important;
+}
+.btn-circle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+.btn-circle-edit {
+  background: var(--pri);
+}
+.btn-circle-delete {
+  background: var(--er);
+}
+
+/* ── TABS ── */
+.tab { display: none; }
+.tab.on { display: block; }
+
+/* ── MODAL ── */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4); /* Slate dark tint backdrop */
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-bg.on { display: flex; }
+.modal {
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.mhdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.mtit { font-size: 16px; font-weight: 700; }
+.mclose { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--t3); padding: 2px 6px; }
+
+/* ── CALENDAR ── */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+.cal-day { background: var(--s2); border-radius: var(--rs); border: 1px solid var(--br); padding: 8px; min-height: 90px; }
+.cal-day.today { border-color: var(--pri); background: var(--prid); }
+.cdn { font-size: 12px; font-weight: 700; font-family: var(--mo); margin-bottom: 6px; }
+.cd-evt { font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+
+/* ── TIPO ROW ── */
+.trow { display: flex; align-items: center; gap: 9px; padding: 12px 0; border-bottom: 1px solid var(--br); }
+.trow:last-child { border-bottom: none; }
+.tprice { font-family: var(--mo); font-weight: 700; font-size: 13px; color: var(--ok); margin-left: auto; }
+
+/* ── TIPO CARDS (form) ── */
+.tipo-cards { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 13px; }
+.tco { flex: 1; min-width: 100px; border: 1px solid var(--br); border-radius: var(--rs); padding: 10px 12px; cursor: pointer; transition: 0.15s; background: var(--sf); }
+.tco:hover { border-color: var(--brs); }
+.tco.sel { border-color: var(--pri); background: var(--pril); }
+.tco-t { font-size: 12px; font-weight: 700; color: var(--pri); }
+.tco-p { font-size: 11px; color: var(--t3); font-family: var(--mo); margin-top: 1px; }
+
+.empty { text-align: center; padding: 40px 16px; color: var(--t3); }
+.ei { font-size: 32px; margin-bottom: 8px; color: var(--t3); }
+.et { font-size: 14px; font-weight: 600; color: var(--t2); }
+
+/* ── NEW PREMIUM SUBJECTS (ASIGNATURAS) UI ── */
+.asig-pre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pri);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.asig-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--br);
+  padding-bottom: 16px;
+}
+.asig-title-left h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--tx);
+  letter-spacing: -0.03em;
+}
+.asig-title-left p {
+  font-size: 13.5px;
+  color: var(--t2);
+  margin-top: 2px;
+}
+.asig-stats {
+  display: flex;
+  gap: 32px;
+}
+.asig-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.asig-stat-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.asig-stat-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tx);
+  line-height: 1.2;
+}
+.asig-stat-val.highlight {
+  color: var(--pri);
+}
+
+/* Grid layout */
+.asig-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.asig-card {
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 200px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+}
+/* Visual left accent strip for premium touch */
+.asig-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--card-accent, var(--pri));
+  border-radius: var(--r) 0 0 var(--r);
+  transition: width 0.2s ease;
+}
+.asig-card:hover::before {
+  width: 8px;
+}
+/* Soft gradient backgrounds matching client colors */
+.asig-card.c-0 { background: linear-gradient(145deg, #ffffff 60%, rgba(79, 70, 229, 0.04) 100%); --card-accent: var(--c0); }
+.asig-card.c-1 { background: linear-gradient(145deg, #ffffff 60%, rgba(14, 165, 233, 0.04) 100%); --card-accent: var(--c1); }
+.asig-card.c-2 { background: linear-gradient(145deg, #ffffff 60%, rgba(239, 68, 68, 0.04) 100%); --card-accent: var(--c2); }
+
+/* Glow outline and transform on hover */
+.asig-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.08);
+  border-color: var(--card-accent, var(--pri));
+}
+.asig-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.asig-card-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.asig-card-badge.b-ust { background: var(--c0l); color: var(--c0); }
+.asig-card-badge.b-uni { background: var(--c1l); color: var(--c1); }
+.asig-card-badge.b-inacap { background: var(--c2l); color: var(--c2); }
+
+.asig-card-dots {
+  color: var(--t3);
+  cursor: pointer;
+  background: none;
+  border: none;
+  display: inline-flex;
+}
+.asig-card-dots:hover {
+  color: var(--tx);
+}
+
+.asig-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tx);
+  letter-spacing: -0.02em;
+}
+.asig-card-code {
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 2px;
+  margin-bottom: 16px;
+}
+.asig-progress-wrap {
+  margin-bottom: 16px;
+}
+.asig-progress-lbl {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2);
+  margin-bottom: 6px;
+}
+.asig-pb {
+  height: 6px;
+  background: var(--s2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.asig-pbf {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+.asig-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--br);
+  padding-top: 12px;
+  font-size: 12.5px;
+}
+.asig-res-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--t2);
+  font-weight: 600;
+}
+.asig-det-btn {
+  color: var(--pri);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.asig-det-btn:hover {
+  transform: translateX(2px);
+}
+
+/* Load more block */
+.asig-load-block {
+  border: 2px dashed var(--br);
+  border-radius: var(--r);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 32px;
+  background: rgba(255, 255, 255, 0.4);
+}
+.asig-load-text {
+  font-size: 13px;
+  color: var(--t2);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+/* Bottom widgets */
+.asig-bottom-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  margin-top: 12px;
+  margin-bottom: 24px;
+}
+.asig-insight-card {
+  background: #0F172A; /* Premium dark navy container matching the screenshot */
+  color: #ffffff;
+  border-radius: var(--r);
+  padding: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+}
+.asig-insight-left {
+  flex: 1;
+  padding-right: 24px;
+}
+.asig-insight-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.asig-insight-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.asig-insight-btns {
+  display: flex;
+  gap: 12px;
+}
+
+/* Dynamic Radial Progress Ring */
+.radial-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.radial-svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+.radial-bg-circle {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 12;
+}
+.radial-progress-circle {
+  fill: none;
+  stroke: var(--pri);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+.radial-text-wrap {
+  position: absolute;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.radial-pct {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+.radial-lbl {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+.asig-summary-card {
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 24px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.asig-summary-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--tx);
+}
+.asig-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.asig-summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.asig-summary-client {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--t2);
+}
+.asig-summary-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.asig-summary-vals {
+  color: var(--tx);
+}
+
+.asig-summary-preview {
+  border-radius: var(--rs);
+  overflow: hidden;
+  height: 110px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--br);
+}
+.asig-summary-preview-content {
+  color: rgba(255, 255, 255, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+@media(max-width: 900px) {
+  .app-container { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; }
+  .kgrid { grid-template-columns: repeat(2, 1fr); }
+  .mid-grid { grid-template-columns: 1fr; }
+  .asig-grid { grid-template-columns: 1fr; }
+  .asig-bottom-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar">
+    <div style="display:flex; flex-direction:column; gap:32px; height:100%;">
+      <div class="brand">
+        <h1 class="brand-title" style="font-size:22px; font-weight:800; letter-spacing:-0.03em; color:var(--tx);">Workspace</h1>
+        <span class="brand-sub" style="font-size:11px; font-weight:600; color:var(--t3); letter-spacing:0.02em;">Freelance Designer</span>
+      </div>
+      <nav class="nav-group">
+        <button class="nav-item on" id="tab-dashboard" onclick="go('dashboard')">
+          <span class="nav-item-icon"><i data-lucide="layout-dashboard"></i></span> Panel
+        </button>
+        <button class="nav-item" id="tab-recursos" onclick="go('recursos')">
+          <span class="nav-item-icon"><i data-lucide="clipboard-list"></i></span> Recursos
+        </button>
+        <button class="nav-item" id="tab-calendario" onclick="go('calendario')">
+          <span class="nav-item-icon"><i data-lucide="calendar"></i></span> Calendario
+        </button>
+        <button class="nav-item" id="tab-asignaturas" onclick="go('asignaturas')">
+          <span class="nav-item-icon"><i data-lucide="book-open"></i></span> Asignaturas
+        </button>
+        <button class="nav-item" id="tab-ingresos" onclick="go('ingresos')">
+          <span class="nav-item-icon"><i data-lucide="wallet"></i></span> Ganancias
+        </button>
+        <button class="nav-item" id="tab-config" onclick="go('config')">
+          <span class="nav-item-icon"><i data-lucide="settings"></i></span> Configuración
+        </button>
+      </nav>
+      
+      <!-- Prominent Blue "+ Nuevo Proyecto" Button at the bottom of nav list -->
+      <button class="btn btn-p" style="width:100%; padding:12px; margin-top:20px; font-size:13px; font-weight:700; border-radius:var(--rs); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);" onclick="go('nueva')">
+        <i data-lucide="plus" style="width:16px; height:16px; stroke-width:3px;"></i> Nuevo Proyecto
+      </button>
+    </div>
+    
+    <div class="sidebar-footer">
+      <button class="nav-item" onclick="toggleImport()">
+        <span class="nav-item-icon"><i data-lucide="database"></i></span> Datos / Demo
+      </button>
+      <button class="nav-item" onclick="alert('Centro de Ayuda - Soporte Técnico')">
+        <span class="nav-item-icon"><i data-lucide="help-circle"></i></span> Centro de Ayuda
+      </button>
+      <button class="nav-item" onclick="alert('Sesión Cerrada con éxito.')">
+        <span class="nav-item-icon"><i data-lucide="log-out"></i></span> Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- CONTENT AREA -->
+  <main class="content-area">
+    
+    <!-- HEADER -->
+    <header class="hdr">
+      <div class="hdr-left">
+        <h2 class="hdr-title" id="active-title">Panel General</h2>
+        
+        <!-- Client Filter Pills -->
+        <div class="cbar">
+          <button class="ctab c-all on" id="ctab-all" onclick="setClient('all')">Todos</button>
+          <button class="ctab c-0" id="ctab-0" onclick="setClient(0)">Santo Tomás</button>
+          <button class="ctab c-1" id="ctab-1" onclick="setClient(1)">UNIACC</button>
+          <button class="ctab c-2" id="ctab-2" onclick="setClient(2)">INACAP</button>
+        </div>
+      </div>
+      
+      <div class="hdr-right">
+        <button class="ibtn" onclick="toggleNotifs()" title="Alertas">
+          <i data-lucide="bell"></i>
+          <span style="position:absolute;top:6px;right:6px;width:6px;height:6px;background:var(--er);border-radius:50%;display:none;" id="ndot"></span>
+        </button>
+        <div class="profile-pill">
+          <div class="profile-avatar">
+            <span style="font-weight:700;color:var(--pri)">AD</span>
+          </div>
+          <span>Admin User</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+
+      <!-- NOTIFICATION PANEL -->
+      <div class="pnl" id="pnl-notif" style="display:none;margin-bottom:16px;">
+        <div class="sh"><span class="st"><i data-lucide="bell" style="margin-right:6px;"></i>Alertas de prioridad</span><button class="btn btn-sm" onclick="toggleNotifs()"><i data-lucide="x"></i></button></div>
+        <div id="nlist" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- IMPORT PANEL -->
+      <div class="pnl" id="pnl-import" style="display:none;margin-bottom:16px;">
+        <div class="sh"><span class="st"><i data-lucide="database" style="margin-right:6px;"></i>Importar / Acciones de Datos</span><button class="btn btn-sm" onclick="toggleImport()"><i data-lucide="x"></i></button></div>
+        <div class="tc2" style="margin-top:12px;">
+          <div>
+            <textarea id="csv-in" rows="4" placeholder='titulo,cliente,asignatura,tipo,recurso,fecha_asignacion,di&#10;"Guía Cálculo","Santo Tomás","Diseño Editorial","tipo1","diagramacion","2026-05-20","Juan"'></textarea>
+            <button class="btn btn-p" style="margin-top:8px;" onclick="importCSV()"><i data-lucide="upload-cloud"></i> Importar CSV</button>
+            <div id="imp-res" style="margin-top:8px;"></div>
+          </div>
+          <div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <button class="btn" onclick="loadDemo()"><i data-lucide="play-circle"></i> Cargar datos de demostración</button>
+              <button class="btn" onclick="exportCSV()"><i data-lucide="download"></i> Exportar Recursos (CSV)</button>
+              <button class="btn" onclick="clearAll()" style="color:var(--er);border-color:rgba(239,68,68,.25)"><i data-lucide="trash-2"></i> Borrar todos los datos</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--                DASHBOARD                  -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab on" id="tab-c-dashboard">
+        
+        <!-- KPI Row -->
+        <div class="kgrid" id="kgrid"></div>
+
+        <!-- Middle Charts & Summaries -->
+        <div class="mid-grid">
+          <div class="card">
+            <div class="sh"><span class="st"><i data-lucide="pie-chart" style="margin-right:6px;"></i>Distribución Ingresos</span></div>
+            <div class="chwrap"><canvas id="cli-chart"></canvas></div>
+          </div>
+          
+          <div class="card">
+            <div class="sh"><span class="st"><i data-lucide="bar-chart-2" style="margin-right:6px;"></i>Resumen por Institución</span></div>
+            <div class="inst-list" id="cli-summary"></div>
+          </div>
+        </div>
+
+        <!-- Resources database table (Gestión de Recursos) -->
+        <div class="db-table-card">
+          <div class="table-header">
+            <h3 class="table-title">Gestión de Recursos</h3>
+            <div class="table-actions">
+              <div class="search-input-wrap">
+                <span class="search-icon"><i data-lucide="search" style="width:14px;height:14px;"></i></span>
+                <input type="text" class="search-input" id="search-db" placeholder="Buscar recurso..." oninput="renderTable()">
+              </div>
+              <button class="btn btn-p" onclick="go('nueva')"><i data-lucide="plus"></i> Nuevo Recurso</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="db-table">
+              <thead>
+                <tr>
+                  <th>Recurso / Asignatura</th>
+                  <th>Institución</th>
+                  <th>Tipo</th>
+                  <th>Tarifa</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="db-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Dynamic Charts section -->
+        <div class="tc2" style="margin-top:24px;">
+          <div class="card">
+            <div class="sh"><span class="st"><i data-lucide="bar-chart" style="margin-right:6px;"></i>Recursos por elaboración</span></div>
+            <div class="chwrap"><canvas id="d-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="sh"><span class="st"><i data-lucide="calendar" style="margin-right:6px;"></i>Entregas próximos 7 días</span></div>
+            <div id="week-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--                 RECURSOS                  -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab" id="tab-c-recursos">
+        <div class="db-table-card" style="margin-top:0;">
+          <div class="table-header">
+            <h3 class="table-title">Todos los Recursos</h3>
+            <div class="table-actions">
+              <select id="fs" onchange="renderResources()" style="width:140px;"></select>
+              <select id="ft" onchange="renderResources()" style="width:140px;">
+                <option value="all">Todos los tipos</option>
+                <option value="tipo1">Tipo 1 – $32.000</option>
+                <option value="tipo2">Tipo 2 – $28.000</option>
+                <option value="tipo3">Tipo 3 – $28.000</option>
+              </select>
+              <select id="fst" onchange="renderResources()" style="width:120px;">
+                <option value="all">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="en_progreso">En progreso</option>
+                <option value="completado">Completado</option>
+              </select>
+              <button class="btn btn-p" onclick="go('nueva')"><i data-lucide="plus"></i> Registrar</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="db-table">
+              <thead>
+                <tr>
+                  <th>Recurso / Asignatura</th>
+                  <th>Institución</th>
+                  <th>Tipo</th>
+                  <th>Tarifa</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="recursos-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--               NUEVA TAREA                 -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab" id="tab-c-nueva">
+        <div class="card" style="max-width:680px;margin:0 auto">
+          <div class="sh"><span class="st"><i data-lucide="plus-circle" style="margin-right:6px;"></i>Registrar nuevo recurso</span></div>
+
+          <div style="margin-bottom:16px">
+            <div class="fl" style="margin-bottom:7px">Cliente *</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="f-cli-btns">
+              <button class="btn" id="fcb-0" onclick="fSelectCli(0)">Santo Tomás</button>
+              <button class="btn" id="fcb-1" onclick="fSelectCli(1)">UNIACC</button>
+              <button class="btn" id="fcb-2" onclick="fSelectCli(2)">INACAP</button>
+            </div>
+            <input type="hidden" id="f-cli" value="0">
+          </div>
+
+          <div style="margin-bottom:16px">
+            <div class="fl" style="margin-bottom:7px">Tipo de recurso *</div>
+            <div class="tipo-cards">
+              <div class="tco sel" id="tc-t1" onclick="selTipo('tipo1')"><div class="tco-t">Tipo 1</div><div class="tco-p">$32.000 bruto</div></div>
+              <div class="tco" id="tc-t2" onclick="selTipo('tipo2')"><div class="tco-t">Tipo 2</div><div class="tco-p">$28.000 bruto</div></div>
+              <div class="tco" id="tc-t3" onclick="selTipo('tipo3')"><div class="tco-t">Tipo 3</div><div class="tco-p">$28.000 bruto</div></div>
+            </div>
+            <input type="hidden" id="f-tipo" value="tipo1">
+          </div>
+
+          <div class="fg2">
+            <div class="fg full"><label class="fl">Título del recurso *</label><input type="text" id="f-title" placeholder="Ej: Guía de Ejercicios Cálculo I"></div>
+            <div class="fg"><label class="fl">Asignatura *</label><select id="f-subj"></select></div>
+            <div class="fg"><label class="fl">Recurso a elaborar</label>
+              <select id="f-kind">
+                <option value="diagramacion">Diagramación de apuntes</option>
+                <option value="video_canva">Video en Canva</option>
+                <option value="interactivo_genially">Interactivo Genially</option>
+                <option value="presentacion_ppt">Presentación PPT</option>
+                <option value="rise">Articulate Rise (Interactivo)</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Fecha asignación *</label><input type="date" id="f-ass" oninput="fAutoDue()"></div>
+            <div class="fg"><label class="fl">Fecha límite</label><input type="date" id="f-due"></div>
+            <div class="fg"><label class="fl">Diseñador instruccional</label><input type="text" id="f-di" placeholder="Ej: CÁLC-102"></div>
+            <div class="fg"><label class="fl">Estado inicial</label>
+              <select id="f-st">
+                <option value="pendiente">Pendiente</option>
+                <option value="en_progreso">En progreso</option>
+              </select>
+            </div>
+            <div class="fg full"><label class="fl">Notas / indicaciones</label><textarea id="f-notes" rows="2" placeholder="Indicaciones especiales..."></textarea></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn btn-p" onclick="saveResource()"><i data-lucide="check"></i> Guardar recurso</button>
+            <button class="btn" onclick="clearForm()"><i data-lucide="refresh-cw"></i> Limpiar</button>
+          </div>
+          <div id="f-msg" style="margin-top:11px"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--               CALENDARIO                  -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab" id="tab-c-calendario">
+        <div class="card">
+          <div class="sh">
+            <span class="st"><i data-lucide="calendar" style="margin-right:6px;"></i>Calendario de entregas</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <button class="btn btn-sm" onclick="calPrev()"><i data-lucide="chevron-left"></i></button>
+              <span class="sc" id="cal-lbl" style="font-weight:700;"></span>
+              <button class="btn btn-sm" onclick="calNext()"><i data-lucide="chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--               ASIGNATURAS                 -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab" id="tab-c-asignaturas">
+        <div id="asig-content"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--                INGRESOS                   -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab" id="tab-c-ingresos">
+        <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-bottom: 20px;">
+          
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="card">
+              <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;"><i data-lucide="trending-up" style="margin-right:6px;"></i>Evolución de Ingresos</h3>
+              <div class="chwrap" style="height: 220px;"><canvas id="e-chart2"></canvas></div>
+            </div>
+            
+            <div class="card">
+              <h3 style="font-size:16px;font-weight:700;"><i data-lucide="award" style="margin-right:6px;"></i>Top Asignaturas por Ingresos</h3>
+              <div id="ing-top" style="margin-top:12px;"></div>
+            </div>
+          </div>
+
+          <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><i data-lucide="coins" style="color:var(--pri);width:18px;height:18px;"></i>Esquema de Tarifas</h3>
+              <p style="font-size:11.5px;color:var(--t3);">Montos de referencia configurados por cliente para los recursos.</p>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              
+              <!-- Santo Tomás -->
+              <div id="rate-box-0" style="padding: 12px; border: 1px solid var(--br); border-radius: var(--rs); background: var(--s2);">
+                <div style="font-weight: 700; color: var(--c0); font-size: 12.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--c0);"></span> Santo Tomás
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; color: var(--t2);">
+                  <div style="display: flex; justify-content: space-between;"><span>Tipo 1 (Complejo)</span><strong style="color: var(--tx); font-family: var(--mo);">$32.000</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Tipo 2 (Estándar)</span><strong style="color: var(--tx); font-family: var(--mo);">$28.000</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Tipo 3 (Básico)</span><strong style="color: var(--tx); font-family: var(--mo);">$28.000</strong></div>
+                </div>
+              </div>
+
+              <!-- UNIACC -->
+              <div id="rate-box-1" style="padding: 12px; border: 1px solid var(--br); border-radius: var(--rs); background: var(--s2);">
+                <div style="font-weight: 700; color: var(--c1); font-size: 12.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--c1);"></span> UNIACC
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; color: var(--t2);">
+                  <div style="display: flex; justify-content: space-between;"><span>De 10 semanas</span><strong style="color: var(--tx); font-family: var(--mo);">$703.800</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>De 20 semanas</span><strong style="color: var(--tx); font-family: var(--mo);">$903.900</strong></div>
+                </div>
+              </div>
+
+              <!-- INACAP -->
+              <div id="rate-box-2" style="padding: 12px; border: 1px solid var(--br); border-radius: var(--rs); background: var(--s2);">
+                <div style="font-weight: 700; color: var(--c2); font-size: 12.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--c2);"></span> INACAP
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; color: var(--t2);">
+                  <div style="display: flex; justify-content: space-between;"><span>Carrera 1</span><strong style="color: var(--tx); font-family: var(--mo);">$1.100.000</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Carrera 2</span><strong style="color: var(--tx); font-family: var(--mo);">$1.100.000</strong></div>
+                  <div style="border-top: 1px dashed var(--br); margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: 700; color: var(--ok);">
+                    <span>Total 2 Carreras</span><span style="font-family: var(--mo); font-weight: 800;">$2.200.000</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!--              CONFIGURACIÓN                -->
+      <!-- ══════════════════════════════════════════ -->
+      <div class="tab" id="tab-c-config">
+        <div class="tc2">
+          <div class="card">
+            <div class="sh"><span class="st"><i data-lucide="settings" style="margin-right:6px;"></i>Configuración del Sistema</span></div>
+            <div class="fg" style="margin-top:12px;margin-bottom:12px;">
+              <label class="fl">Días para "Urgente" (≤)</label>
+              <input type="number" id="cfg-urg" min="1" max="7" value="2">
+            </div>
+            <div class="fg" style="margin-bottom:16px;">
+              <label class="fl">Días para "Alta" (≤)</label>
+              <input type="number" id="cfg-high" min="1" max="7" value="4">
+            </div>
+            <button class="btn btn-p" onclick="saveCfg()"><i data-lucide="save"></i> Guardar configuración</button>
+            <div id="cfg-msg2" style="margin-top:8px"></div>
+          </div>
+          <div class="card">
+            <div class="sh"><span class="st"><i data-lucide="book-open" style="margin-right:6px;"></i>Asignaturas por Institución</span></div>
+            <div id="cfg-clients-wrap" style="margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-bg" id="modal-edit">
+  <div class="modal">
+    <div class="mhdr"><span class="mtit"><i data-lucide="edit-3" style="margin-right:8px;vertical-align:middle;color:var(--pri);"></i>Editar Recurso</span><button class="mclose" onclick="closeEdit()"><i data-lucide="x"></i></button></div>
+    <div class="fg2" style="gap:11px;margin-bottom:11px">
+      <div class="fg full"><label class="fl">Título *</label><input type="text" id="e-title"></div>
+      <div class="fg"><label class="fl">Institución</label><select id="e-cli" onchange="eUpdateSubjs()"></select></div>
+      <div class="fg"><label class="fl">Asignatura</label><select id="e-subj"></select></div>
+      <div class="fg"><label class="fl">Tipo</label>
+        <select id="e-tipo">
+          <option value="tipo1">Tipo 1 → $32.000</option>
+          <option value="tipo2">Tipo 2 → $28.000</option>
+          <option value="tipo3">Tipo 3 → $28.000</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Recurso</label>
+        <select id="e-kind">
+          <option value="diagramacion">Diagramación</option>
+          <option value="video_canva">Video Canva</option>
+          <option value="interactivo_genially">Interactivo Genially</option>
+          <option value="presentacion_ppt">Presentación PPT</option>
+          <option value="rise">Articulate Rise</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Fecha asignación</label><input type="date" id="e-ass" oninput="eAutoDue()"></div>
+      <div class="fg"><label class="fl">Fecha límite</label><input type="date" id="e-due"></div>
+      <div class="fg"><label class="fl">Código / D.I.</label><input type="text" id="e-di"></div>
+      <div class="fg"><label class="fl">Estado</label>
+        <select id="e-st">
+          <option value="pendiente">Pendiente</option>
+          <option value="en_progreso">En progreso</option>
+          <option value="completado">Completado</option>
+        </select>
+      </div>
+      <div class="fg full"><label class="fl">Notas</label><textarea id="e-notes" rows="2"></textarea></div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-p" onclick="saveEdit()"><i data-lucide="save"></i> Guardar</button>
+      <button class="btn btn-sec" onclick="closeEdit()">Cancelar</button>
+    </div>
+    <div id="e-msg" style="margin-top:9px"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════
+const CLIENTS=[
+  {id:0,name:'Santo Tomás',short:'ST',color:'var(--c0)',colorVal:'#3525cd',light:'var(--c0l)'},
+  {id:1,name:'UNIACC',short:'UN',color:'var(--c1)',colorVal:'#0ea5e9',light:'var(--c1l)'},
+  {id:2,name:'INACAP',short:'IN',color:'var(--c2)',colorVal:'#ef4444',light:'var(--c2l)'},
+];
+const TIPOS={
+  tipo1:{label:'Tipo 1 (Complejo)',price:32000,desc:'Videos, cápsulas, interactivos'},
+  tipo2:{label:'Tipo 2 (Estándar)',price:28000,desc:'Evaluativas, prácticas, descargables'},
+  tipo3:{label:'Tipo 3 (Básico)',price:28000,desc:'Sincrónico / presencial'},
+  uniacc_10:{label:'De 10 semanas',price:703800,desc:'Asignatura de 10 semanas'},
+  uniacc_20:{label:'De 20 semanas',price:903900,desc:'Asignatura de 20 semanas'},
+  inacap_c1:{label:'Carrera 1',price:1100000,desc:'Asignatura Carrera 1'},
+  inacap_c2:{label:'Carrera 2',price:1100000,desc:'Asignatura Carrera 2'},
+  inacap_total:{label:'Total 2 Carreras',price:2200000,desc:'Total por las dos carreras'}
+};
+function getTiposForClient(clientId) {
+  if (clientId === 1) {
+    return {
+      uniacc_10: TIPOS.uniacc_10,
+      uniacc_20: TIPOS.uniacc_20
+    };
+  } else if (clientId === 2) {
+    return {
+      inacap_c1: TIPOS.inacap_c1,
+      inacap_c2: TIPOS.inacap_c2,
+      inacap_total: TIPOS.inacap_total
+    };
+  } else {
+    return {
+      tipo1: TIPOS.tipo1,
+      tipo2: TIPOS.tipo2,
+      tipo3: TIPOS.tipo3
+    };
+  }
+}
+const KINDS={
+  diagramacion:{label:'Diagramación',icon:'📄'},
+  video_canva:{label:'Video Canva',icon:'🎬'},
+  interactivo_genially:{label:'Genially',icon:'⚡'},
+  presentacion_ppt:{label:'PPT',icon:'📊'},
+  rise:{label:'Articulate Rise',icon:'⚡'}
+};
+const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DEF_SUBJECTS=[
+  [
+    'Calidad e Inocuidad Alimentaria',
+    'Evaluación de Proyecto',
+    'Finanzas Corporativas',
+    'Inteligencia de Negocios',
+    'Mercado de Capitales',
+    'Modelo Negocios Residuos',
+    'Sistema de Producción de Frutales Sostenibles',
+    'Sistema Producción Cultivos Sostenibles',
+    'Tecn de Energías Renovables',
+    'Trabajo de Título',
+    'Gestión de Operaciones Humanitarias',
+    'Ingeniería Térmica',
+    'Pronóstico de Datos e Inteligencia Artificial',
+    'Regresión y Pronóstico de Datos',
+    'Análisis de Datos Cuantitativos'
+  ],
+  ['AFGIAH26 Inteligencia Artificial para el Desarrollo de Habilidades Académicas', 'AFGPPT26 Poesía: La Palabra en el Tiempo'],
+  ['Marketing Digital - AEMO15 (18s)', 'Marketing Digital - AEMO15 (9s)']
+];
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let S={resources:[],subjects:CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]]),cfg:{urgDays:2,highDays:4}};
+let curClient='all'; // 'all' | 0 | 1 | 2
+let calOffset=0;
+let editId=null;
+let _clic=null,_dc=null,_ec2=null;
+
+function load(){const d=localStorage.getItem('rfust_v5');if(d){try{const p=JSON.parse(d);S={...S,...p};if(!S.subjects||S.subjects.length<3)S.subjects=CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]])}catch(e){}}}
+function save(){localStorage.setItem('rfust_v5',JSON.stringify(S))}
+
+// ══════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════
+function dL(due){const n=new Date();n.setHours(0,0,0,0);const d=new Date(due+'T00:00:00');d.setHours(0,0,0,0);return Math.round((d-n)/86400000)}
+function fDate(s){if(!s)return'–';return new Date(s+'T00:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short'})}
+function fM(n){return'$'+Math.round(n).toLocaleString('es-CL')}
+function fDays(d,st){if(st==='completado')return'✅ Entregado';if(d<0)return`⚠️ Vencido ${Math.abs(d)}d`;if(d===0)return'🔴 HOY';return`📅 ${d}d`}
+function genId(){return'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function isDark(){return window.matchMedia('(prefers-color-scheme:dark)').matches}
+function prio(r){
+  if(r.status==='completado')return{lv:'completado',label:'Entregado',color:'var(--ok)',order:99};
+  const d=dL(r.dueDate),u=S.cfg?.urgDays??2,h=S.cfg?.highDays??4;
+  if(d<0)return{lv:'vencido',label:'Vencido',color:'#ef4444',order:0};
+  if(d<=u)return{lv:'urgente',label:'Urgente',color:'var(--er)',order:1};
+  if(d<=h)return{lv:'alta',label:'Alta',color:'var(--or)',order:2};
+  if(d<=6)return{lv:'media',label:'Media',color:'var(--wa)',order:3};
+  return{lv:'normal',label:'Normal',color:'var(--ok)',order:4};
+}
+function sorted(arr){return[...arr].sort((a,b)=>{const pa=prio(a),pb=prio(b);if(pa.order!==pb.order)return pa.order-pb.order;return dL(a.dueDate)-dL(b.dueDate)})}
+function cliRes(cli){return cli==='all'?S.resources:S.resources.filter(r=>r.clientId===cli)}
+
+// ══════════════════════════════════════════════════════════
+// CLIENT BAR & NAVIGATION
+// ══════════════════════════════════════════════════════════
+function setClient(cli){
+  curClient=cli;
+  document.querySelectorAll('.ctab').forEach(el=>el.classList.remove('on'));
+  document.getElementById(cli==='all'?'ctab-all':`ctab-${cli}`).classList.add('on');
+  updateClientBadges();
+  rerender();
+}
+function updateClientBadges(){
+  const R=S.resources.filter(r=>r.status!=='completado');
+  document.getElementById('cb-all')?.textContent && (document.getElementById('cb-all').textContent=R.length);
+}
+function rerender(){
+  const cur=document.querySelector('.nav-item.on');
+  if(!cur)return;
+  const id=cur.id.replace('tab-','');
+  if(id==='dashboard')renderDash();
+  if(id==='recursos')renderResources();
+  if(id==='calendario')renderCalendar();
+  if(id==='asignaturas')renderAsig();
+  if(id==='ingresos')renderIngresos();
+}
+
+function go(tab){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('on'));
+  document.getElementById('tab-c-'+tab).classList.add('on');
+  document.getElementById('tab-'+tab).classList.add('on');
+  
+  // Set Active Header Title
+  const titles = {
+    dashboard: 'Panel General',
+    recursos: 'Gestión de Recursos',
+    nueva: 'Registrar Recurso',
+    calendario: 'Calendario de Entregas',
+    asignaturas: 'Progreso por Asignaturas',
+    ingresos: 'Evolución de Ingresos',
+    config: 'Configuración'
+  };
+  document.getElementById('active-title').textContent = titles[tab] || 'Dashboard';
+
+  if(tab==='dashboard')renderDash();
+  if(tab==='recursos')renderResources();
+  if(tab==='nueva')initForm();
+  if(tab==='calendario')renderCalendar();
+  if(tab==='asignaturas')renderAsig();
+  if(tab==='ingresos')renderIngresos();
+  if(tab==='config')renderConfig();
+}
+
+// ══════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════════════════
+function getAlerts(){
+  const act=cliRes(curClient).filter(r=>r.status!=='completado');
+  const u=S.cfg?.urgDays??2,h=S.cfg?.highDays??4;
+  const ov=act.filter(r=>dL(r.dueDate)<0);
+  const ur=act.filter(r=>{const d=dL(r.dueDate);return d>=0&&d<=u});
+  const ha=act.filter(r=>{const d=dL(r.dueDate);return d>u&&d<=h});
+  const ns=[];
+  if(ov.length)ns.push({t:'d',text:`⚠️ ${ov.length} vencidos`,det:ov.map(r=>`[${CLIENTS.find(c=>c.id===r.clientId)?.short||'?'}] ${r.title}`).join(' · ')});
+  if(ur.length)ns.push({t:'d',text:`🔴 ${ur.length} urgentes (≤${u}d)`,det:ur.map(r=>`[${CLIENTS.find(c=>c.id===r.clientId)?.short||'?'}] ${r.title}`).join(' · ')});
+  if(ha.length)ns.push({t:'w',text:`🟠 ${ha.length} alta prioridad (≤${h}d)`,det:ha.map(r=>`[${CLIENTS.find(c=>c.id===r.clientId)?.short||'?'}] ${r.title}`).join(' · ')});
+  return ns;
+}
+function updateDot(){document.getElementById('ndot').style.display=getAlerts().length?'block':'none'}
+function toggleNotifs(){
+  const p=document.getElementById('pnl-notif');
+  document.getElementById('pnl-import').style.display='none';
+  const ns=getAlerts();
+  document.getElementById('nlist').innerHTML=ns.length
+    ?ns.map(n=>`<div class="nit" style="padding: 8px 0; border-bottom:1px solid var(--br)"><div style="font-weight:600;color:var(--tx)">${n.text}</div><div style="font-size:11px;color:var(--t3);margin-top:2px">${n.det}</div></div>`).join('')
+    :'<div class="empty" style="padding:12px"><div class="ei"><i data-lucide="check-circle" style="width:24px;height:24px;color:var(--ok);"></i></div><div class="et">Sin alertas activas</div></div>';
+  p.style.display=p.style.display==='none'?'block':'none';
+  lucide.createIcons();
+}
+function toggleImport(){
+  document.getElementById('pnl-notif').style.display='none';
+  const p=document.getElementById('pnl-import');
+  p.style.display=p.style.display==='none'?'block':'none';
+  lucide.createIcons();
+}
+
+function viewClientAsig(clientId) {
+  setClient(clientId);
+  go('asignaturas');
+}
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD VIEW
+// ══════════════════════════════════════════════════════════
+function renderDash(){
+  const R=cliRes(curClient);
+  const act=R.filter(r=>r.status!=='completado');
+  const done=R.filter(r=>r.status==='completado');
+  const prog=R.filter(r=>r.status==='en_progreso');
+  const pend=R.filter(r=>r.status==='pendiente');
+  const urg=act.filter(r=>dL(r.dueDate)>=0&&dL(r.dueDate)<=(S.cfg?.urgDays??2));
+  const earned=done.reduce((s,r)=>s+TIPOS[r.tipo].price,0);
+  const proj=act.reduce((s,r)=>s+TIPOS[r.tipo].price,0);
+
+  // Modern styled KPI Card content matching screenshot layout with flat vector icons
+  document.getElementById('kgrid').innerHTML=`
+    <div class="kpi">
+      <div class="kl">RECURSOS TOTALES</div>
+      <div class="kv">${R.length} <span class="kbadge">${R.length > 0 ? '+12%' : '0%'}</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kl">EN PROGRESO</div>
+      <div class="kv">${prog.length} <span class="kicon"><i data-lucide="clock"></i></span></div>
+    </div>
+    <div class="kpi">
+      <div class="kl">URGENTES</div>
+      <div class="kv" style="color:var(--er)">${urg.length} <span class="kicon" style="color:var(--er);"><i data-lucide="alert-triangle"></i></span></div>
+    </div>
+    <div class="kpi">
+      <div class="kl">COMPLETADOS</div>
+      <div class="kv" style="color:var(--ok)">${done.length} <span class="kicon" style="color:var(--ok);"><i data-lucide="check-circle-2"></i></span></div>
+    </div>
+    <div class="kpi kpi-accent">
+      <div class="kl">INGRESOS ACUM.</div>
+      <div class="kv" style="font-size:20px;">${fM(earned)}</div>
+      <div class="ks">CLP Consolidado</div>
+    </div>
+  `;
+
+  // Left card: Distribución Ingresos (Doughnut Chart)
+  setTimeout(()=>{
+    const ctx=document.getElementById('cli-chart'); if(!ctx)return;
+    if(_clic)_clic.destroy(); _clic=null;
+    const tc=isDark()?'#94a3b8':'#475569';
+    const earnings0 = R.filter(r=>r.clientId===0&&r.status==='completado').reduce((s,r)=>s+TIPOS[r.tipo].price,0);
+    const earnings1 = R.filter(r=>r.clientId===1&&r.status==='completado').reduce((s,r)=>s+TIPOS[r.tipo].price,0);
+    const earnings2 = R.filter(r=>r.clientId===2&&r.status==='completado').reduce((s,r)=>s+TIPOS[r.tipo].price,0);
+    const hasData = (earnings0 + earnings1 + earnings2) > 0;
+    
+    _clic=new Chart(ctx,{type:'doughnut',data:{
+      labels:CLIENTS.map(c=>c.name),
+      datasets:[{data:hasData ? [earnings0, earnings1, earnings2] : [1, 1, 1],
+        backgroundColor:hasData ? ['#3525cd','#0ea5e9','#ef4444'] : ['#cbd5e1','#cbd5e1','#cbd5e1'],
+        borderWidth:0,hoverBorderWidth:0}]
+    },options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},color:tc,padding:6}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${hasData ? fM(c.raw) : '$0'}`}}},
+      cutout:'65%'}});
+  },60);
+
+  // Right card: Resumen por Institución
+  document.getElementById('cli-summary').innerHTML=CLIENTS.map(c=>{
+    const cSubjs = S.subjects[c.id].length;
+    const cR = R.filter(r=>r.clientId===c.id);
+    const cDone = cR.filter(r=>r.status==='completado');
+    const cEarned = cDone.reduce((s,r)=>s+TIPOS[r.tipo].price,0);
+    const cPct = cR.length ? Math.round(cDone.length / cR.length * 100) : 0;
+    return `<div class="inst-item" style="cursor:pointer;" onclick="viewClientAsig(${c.id})" title="Ver asignaturas de ${c.name}">
+      <div class="inst-brand">
+        <div class="inst-logo" style="background:${c.colorVal};">${c.short}</div>
+        <div class="inst-info">
+          <span class="inst-name">${c.name}</span>
+          <span class="inst-sub">${cSubjs} asignaturas activas</span>
+        </div>
+      </div>
+      <div class="inst-metrics">
+        <div class="inst-metric-item">
+          <span class="inst-m-label">INGRESOS</span>
+          <span class="inst-m-val">${fM(cEarned)}</span>
+        </div>
+        <div class="inst-metric-item">
+          <span class="inst-m-label">PROGRESO</span>
+          <span class="inst-m-val">${cPct}%</span>
+        </div>
+        <span class="inst-chevron"><i data-lucide="chevron-right"></i></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Bottom table view of resources
+  renderTable();
+
+  // Elaboración chart
+  setTimeout(()=>{
+    const ctx=document.getElementById('d-chart'); if(!ctx)return;
+    if(_dc)_dc.destroy(); _dc=null;
+    const tc=isDark()?'#94a3b8':'#475569';
+    const gc=isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
+    const ks=Object.keys(KINDS);
+    _dc=new Chart(ctx,{type:'bar',data:{
+      labels:ks.map(k=>KINDS[k].label),
+      datasets:[
+        {label:'Pendiente',data:ks.map(k=>R.filter(r=>r.kind===k&&r.status==='pendiente').length),backgroundColor:'rgba(245,158,11,.6)',borderRadius:4},
+        {label:'En progreso',data:ks.map(k=>R.filter(r=>r.kind===k&&r.status==='en_progreso').length),backgroundColor:'rgba(79,70,229,.6)',borderRadius:4},
+        {label:'Completado',data:ks.map(k=>R.filter(r=>r.kind===k&&r.status==='completado').length),backgroundColor:'rgba(16,185,129,.6)',borderRadius:4}
+      ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:9},color:tc,padding:6}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:tc}},y:{stacked:true,grid:{color:gc},ticks:{color:tc},beginAtZero:true}}}});
+  },80);
+
+  // Week list
+  const today=new Date(); today.setHours(0,0,0,0);
+  const in7=new Date(today); in7.setDate(in7.getDate()+7);
+  const week=sorted(R.filter(r=>{if(r.status==='completado')return false;const d=new Date(r.dueDate+'T00:00:00');return d>=today&&d<=in7}));
+  document.getElementById('week-list').innerHTML=week.length
+    ?week.map(r=>{const c=CLIENTS.find(c=>c.id===r.clientId);
+      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--br);border-radius:var(--rs);background:var(--sf);">
+        <div><div style="font-weight:600;">${r.title}</div><div style="font-size:10.5px;color:var(--t3);">${c?.name} · ${r.subject}</div></div>
+        <div style="text-align:right;"><span class="status-badge s-urgent">${fDays(dL(r.dueDate),r.status)}</span></div>
+      </div>`;}).join('')
+    :'<div class="empty" style="padding:16px;"><div class="ei"><i data-lucide="calendar"></i></div><div class="et">Sin entregas esta semana</div></div>';
+
+  lucide.createIcons();
+}
+
+// ══════════════════════════════════════════════════════════
+// TABLE RENDERING (RESOURCE VIEW)
+// ══════════════════════════════════════════════════════════
+function renderTable(){
+  const tbody = document.getElementById('db-table-body');
+  if(!tbody)return;
+  const searchQ = document.getElementById('search-db').value.toLowerCase();
+  
+  let R = S.resources;
+  if(searchQ){
+    R = R.filter(r=>r.title.toLowerCase().includes(searchQ) || r.subject.toLowerCase().includes(searchQ));
+  }
+  
+  tbody.innerHTML = R.length
+    ? R.map(r=>rowHtml(r)).join('')
+    : `<tr><td colspan="6" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos registrados</div></td></tr>`;
+  lucide.createIcons();
+}
+
+function rowHtml(r){
+  const c = CLIENTS.find(cl => cl.id === r.clientId);
+  const t = TIPOS[r.tipo] || {label:'Tipo 1',price:32000};
+  
+  // Mapping status classes
+  let statusCls = 's-pending';
+  let statusText = 'Pendiente';
+  if(r.status==='completado'){ statusCls='s-completed'; statusText='Completado'; }
+  else if(r.status==='en_progreso'){ statusCls='s-progress'; statusText='En Progreso'; }
+  else if(dL(r.dueDate) <= S.cfg.urgDays){ statusCls='s-urgent'; statusText='Urgente'; }
+
+  let cBadge = c ? `<span class="inst-badge b-${c.short.toLowerCase()}">${c.name}</span>` : 'Santo Tomás';
+
+  return `<tr>
+    <td>
+      <div class="cell-title">${r.title}</div>
+      <div class="cell-subtitle">${r.subject}</div>
+    </td>
+    <td>${cBadge}</td>
+    <td>${t.label}</td>
+    <td style="font-weight:700;">${fM(t.price)}</td>
+    <td><span class="status-badge ${statusCls}">${statusText}</span></td>
+    <td>
+      <div class="action-row">
+        <button class="btn-circle btn-circle-edit" onclick="openEdit('${r.id}')" title="Editar"><i data-lucide="edit-2" style="width:14px;height:14px;"></i></button>
+        <button class="btn-circle btn-circle-delete" onclick="delRes('${r.id}')" title="Eliminar"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderResources(){
+  const tbody = document.getElementById('recursos-table-body');
+  if(!tbody)return;
+  const fs = document.getElementById('fs').value;
+  const ft = document.getElementById('ft').value;
+  const fst = document.getElementById('fst').value;
+  
+  let R = S.resources;
+  if(fs!=='all') R = R.filter(r=>r.subject===fs);
+  if(ft!=='all') R = R.filter(r=>r.tipo===ft);
+  if(fst!=='all') R = R.filter(r=>r.status===fst);
+  
+  tbody.innerHTML = R.length
+    ? R.map(r=>rowHtml(r)).join('')
+    : `<tr><td colspan="6" class="empty"><div class="ei"><i data-lucide="database"></i></div><div class="et">Sin recursos</div></td></tr>`;
+  lucide.createIcons();
+}
+
+function fillFilters(){
+  const sel=document.getElementById('fs');
+  if(!sel)return;
+  const curSubj = sel.value;
+  const R_filtered = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
+  const subjs=[...new Set(R_filtered.map(r=>r.subject))];
+  sel.innerHTML='<option value="all">Todas las asignaturas</option>'+subjs.map(s=>`<option${s===curSubj?' selected':''}>${s}</option>`).join('');
+  
+  const ft = document.getElementById('ft');
+  if (ft) {
+    const curVal = ft.value;
+    let clientTipos;
+    if (curClient === 'all') {
+      clientTipos = TIPOS;
+    } else {
+      clientTipos = getTiposForClient(curClient);
+    }
+    const keys = Object.keys(clientTipos);
+    let options = '<option value="all">Todos los tipos</option>';
+    keys.forEach(key => {
+      options += `<option value="${key}"${key===curVal?' selected':''}>${clientTipos[key].label} – ${fM(clientTipos[key].price)}</option>`;
+    });
+    ft.innerHTML = options;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════════════════════
+function setStatus(id,st){
+  const r=S.resources.find(r=>r.id===id); if(!r)return;
+  r.status=st; save(); updateDot(); rerender();
+}
+function delRes(id){
+  if(!confirm('¿Eliminar este recurso?'))return;
+  S.resources=S.resources.filter(r=>r.id!==id); save(); updateDot(); renderDash();
+}
+
+// ══════════════════════════════════════════════════════════
+// EDIT MODAL
+// ══════════════════════════════════════════════════════════
+function openEdit(id){
+  editId=id; const r=S.resources.find(r=>r.id===id); if(!r)return;
+  document.getElementById('e-cli').innerHTML=CLIENTS.map(c=>`<option value="${c.id}"${c.id===r.clientId?' selected':''}>${c.name}</option>`).join('');
+  eUpdateSubjs(r.subject);
+  updateEditTipos(r.clientId, r.tipo);
+  document.getElementById('e-title').value=r.title;
+  document.getElementById('e-kind').value=r.kind;
+  document.getElementById('e-ass').value=r.assignedDate||'';
+  document.getElementById('e-due').value=r.dueDate||'';
+  document.getElementById('e-di').value=r.assignedBy||'';
+  document.getElementById('e-st').value=r.status;
+  document.getElementById('e-notes').value=r.notes||'';
+  document.getElementById('e-msg').innerHTML='';
+  document.getElementById('modal-edit').classList.add('on');
+  lucide.createIcons();
+}
+function eUpdateSubjs(selSubj){
+  const cid=parseInt(document.getElementById('e-cli').value);
+  const subjs=S.subjects[cid]||[];
+  const curSubj=selSubj||document.getElementById('e-subj').value;
+  document.getElementById('e-subj').innerHTML=subjs.map(s=>`<option${s===curSubj?' selected':''}>${s}</option>`).join('');
+  
+  const rTipo = editId ? S.resources.find(r=>r.id===editId)?.tipo : null;
+  updateEditTipos(cid, rTipo);
+}
+function updateEditTipos(cid, selTipo) {
+  const select = document.getElementById('e-tipo');
+  if (!select) return;
+  const clientTipos = getTiposForClient(cid);
+  const keys = Object.keys(clientTipos);
+  const curVal = keys.includes(selTipo) ? selTipo : keys[0];
+  
+  select.innerHTML = keys.map(key => {
+    const t = clientTipos[key];
+    return `<option value="${key}"${key===curVal?' selected':''}>${t.label} → ${fM(t.price)}</option>`;
+  }).join('');
+}
+function closeEdit(){editId=null; document.getElementById('modal-edit').classList.remove('on')}
+function eAutoDue(){const v=document.getElementById('e-ass').value; if(v){const d=new Date(v); d.setDate(d.getDate()+7); document.getElementById('e-due').value=d.toISOString().split('T')[0]}}
+function saveEdit(){
+  if(!editId)return;
+  const title=document.getElementById('e-title').value.trim();
+  if(!title){document.getElementById('e-msg').innerHTML='<div class="al al-w">⚠️ Título obligatorio</div>';return}
+  const r=S.resources.find(r=>r.id===editId); if(!r)return;
+  r.title=title; r.clientId=parseInt(document.getElementById('e-cli').value); r.subject=document.getElementById('e-subj').value;
+  r.tipo=document.getElementById('e-tipo').value; r.kind=document.getElementById('e-kind').value;
+  r.assignedDate=document.getElementById('e-ass').value; r.dueDate=document.getElementById('e-due').value;
+  r.assignedBy=document.getElementById('e-di').value.trim(); r.status=document.getElementById('e-st').value;
+  r.notes=document.getElementById('e-notes').value.trim();
+  save(); updateDot();
+  document.getElementById('e-msg').innerHTML='<div class="al al-g">✅ Cambios guardados</div>';
+  setTimeout(()=>{closeEdit(); renderDash();},900);
+}
+
+// ══════════════════════════════════════════════════════════
+// FORM (NUEVA TAREA)
+// ══════════════════════════════════════════════════════════
+let fCurCli=0;
+function initForm(){
+  fCurCli=curClient==='all'?0:curClient;
+  updateFCliBtn();
+  document.getElementById('f-subj').innerHTML=S.subjects[fCurCli].map(s=>`<option>${s}</option>`).join('');
+  if(!document.getElementById('f-ass').value){document.getElementById('f-ass').value=new Date().toISOString().split('T')[0]; fAutoDue()}
+  renderFormPricing(fCurCli);
+  lucide.createIcons();
+}
+function fSelectCli(cid){
+  fCurCli=cid;
+  updateFCliBtn();
+  document.getElementById('f-cli').value=cid;
+  document.getElementById('f-subj').innerHTML=S.subjects[cid].map(s=>`<option>${s}</option>`).join('');
+  renderFormPricing(cid);
+}
+function updateFCliBtn(){
+  CLIENTS.forEach(c=>{
+    const b=document.getElementById(`fcb-${c.id}`);
+    if(b){
+      b.style.background=c.id===fCurCli?c.colorVal:'';
+      b.style.color=c.id===fCurCli?'#fff':'';
+      b.style.borderColor=c.id===fCurCli?c.colorVal:'';
+    }
+  });
+}
+function renderFormPricing(cid) {
+  const container = document.querySelector('#tab-c-nueva .tipo-cards');
+  if (!container) return;
+  const clientTipos = getTiposForClient(cid);
+  const keys = Object.keys(clientTipos);
+  
+  let html = '';
+  keys.forEach((key, idx) => {
+    const t = clientTipos[key];
+    const isSel = idx === 0 ? ' sel' : '';
+    html += `<div class="tco${isSel}" id="tc-${key}" onclick="selTipo('${key}')">
+      <div class="tco-t">${t.label}</div>
+      <div class="tco-p">${fM(t.price)} bruto</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  document.getElementById('f-tipo').value = keys[0];
+}
+function selTipo(t){
+  document.getElementById('f-tipo').value=t;
+  document.querySelectorAll('#tab-c-nueva .tco').forEach(el=>el.classList.remove('sel'));
+  const target = document.getElementById('tc-'+t);
+  if (target) target.classList.add('sel');
+}
+function fAutoDue(){const v=document.getElementById('f-ass').value; if(v){const d=new Date(v); d.setDate(d.getDate()+7); document.getElementById('f-due').value=d.toISOString().split('T')[0]}}
+function saveResource(){
+  const title=document.getElementById('f-title').value.trim();
+  const cid=parseInt(document.getElementById('f-cli').value||fCurCli);
+  const subj=document.getElementById('f-subj').value;
+  const tipo=document.getElementById('f-tipo').value;
+  const kind=document.getElementById('f-kind').value;
+  const ass=document.getElementById('f-ass').value;
+  const due=document.getElementById('f-due').value;
+  const di=document.getElementById('f-di').value.trim();
+  const st=document.getElementById('f-st').value;
+  const notes=document.getElementById('f-notes').value.trim();
+  const msg=document.getElementById('f-msg');
+  if(!title||!ass||!due){msg.innerHTML='<div class="al al-w">⚠️ Completa los campos.</div>';return}
+  S.resources.push({id:genId(),title,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:due,assignedBy:di,status:st,notes});
+  save(); updateDot();
+  msg.innerHTML='<div class="al al-g">✅ Recurso guardado.</div>';
+  setTimeout(()=>{clearForm(); go('dashboard')},1000);
+}
+function clearForm(){
+  ['f-title','f-di','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-ass').value=new Date().toISOString().split('T')[0];
+  fAutoDue(); document.getElementById('f-msg').innerHTML='';
+  renderFormPricing(fCurCli);
+}
+
+// ══════════════════════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════════════════════
+function renderCalendar(){
+  const now=new Date();
+  const target=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
+  const year=target.getFullYear(),month=target.getMonth();
+  document.getElementById('cal-lbl').textContent=MONTHS[month]+' '+year;
+  const startOffset=(new Date(year,month,1).getDay()+6)%7;
+  const daysInM=new Date(year,month+1,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const byDay={};
+  cliRes(curClient).forEach(r=>{if(!r.dueDate)return;const d=new Date(r.dueDate+'T00:00:00');if(d.getFullYear()===year&&d.getMonth()===month){const k=d.getDate();(byDay[k]||(byDay[k]=[])).push(r)}});
+  let html=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div style="text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);">${d}</div>`).join('');
+  for(let i=0;i<startOffset;i++)html+='<div></div>';
+  for(let day=1;day<=daysInM;day++){
+    const dt=new Date(year,month,day); dt.setHours(0,0,0,0);
+    const isToday=dt.getTime()===today.getTime();
+    const evts=byDay[day]||[];
+    html+=`<div class="cal-day${isToday?' today':''}">
+      <div class="cdn">${day}</div>
+      ${evts.slice(0,2).map(r=>{
+        const p=r.status==='completado'?{lv:'completado'}:prio(r);
+        const bg=p.lv==='urgente'||p.lv==='vencido'?'var(--erl)':p.lv==='alta'?'var(--orl)':'var(--okl)';
+        const cl=p.lv==='urgente'||p.lv==='vencido'?'var(--er)':p.lv==='alta'?'var(--or)':'var(--ok)';
+        const c=CLIENTS.find(c=>c.id===r.clientId);
+        return`<div class="cd-evt" style="background:${bg};color:${cl}" title="${r.title}">${c?`[${c.short}] `:''} ${r.title}</div>`;
+      }).join('')}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+  lucide.createIcons();
+}
+function calPrev(){calOffset--; renderCalendar()}
+function calNext(){calOffset++; renderCalendar()}
+
+// ══════════════════════════════════════════════════════════
+// ASIGNATURAS VIEW
+// ══════════════════════════════════════════════════════════
+function renderAsig(){
+  const R = cliRes(curClient);
+  
+  // List of active subjects based on the filter
+  const subjsList = curClient === 'all'
+    ? CLIENTS.flatMap(c => S.subjects[c.id].map(s => ({ s, cid: c.id })))
+    : S.subjects[curClient].map(s => ({ s, cid: curClient }));
+    
+  const totalAsig = subjsList.length;
+  
+  // Calculate average progress
+  let totalPctSum = 0;
+  subjsList.forEach(item => {
+    const sr = S.resources.filter(r => r.subject === item.s && r.clientId === item.cid);
+    const done = sr.filter(r => r.status === 'completado').length;
+    totalPctSum += sr.length ? (done / sr.length * 100) : 0;
+  });
+  const avgProgress = totalAsig ? Math.round(totalPctSum / totalAsig) : 0;
+  
+  const activeClientName = curClient === 'all' ? 'DesignOps Suite' : CLIENTS.find(c => c.id === curClient).name;
+  
+  // Render cards
+  const cardsHtml = subjsList.map((item, idx) => {
+    const c = CLIENTS.find(cl => cl.id === item.cid);
+    const sr = S.resources.filter(r => r.subject === item.s && r.clientId === item.cid);
+    const done = sr.filter(r => r.status === 'completado').length;
+    const pct = sr.length ? Math.round(done / sr.length * 100) : 0;
+    
+    // Generate code and semester
+    const letterCode = item.s.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+    const code = `Código: ${letterCode}${100 + idx} • Semestre ${(idx % 4) + 1}`;
+    
+    return `<div class="asig-card c-${item.cid}" style="position:relative;">
+      <!-- Subtle watermark background icon inside card -->
+      <div class="asig-card-watermark" style="position:absolute; right:-15px; bottom:-15px; color:${c.colorVal}; opacity:0.04; pointer-events:none; transform:rotate(-15deg); z-index:1;"><i data-lucide="graduation-cap" style="width:100px; height:100px; stroke-width:1;"></i></div>
+      <div class="asig-card-header" style="position:relative; z-index:2;">
+        <span class="asig-card-badge b-${c.short.toLowerCase()}">
+          <i data-lucide="graduation-cap" style="width:12px;height:12px;"></i> ${c.name}
+        </span>
+        <div style="position:relative;">
+          <button class="asig-card-dots" onclick="toggleAsigMenu(event, ${idx})">
+            <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
+          </button>
+          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:24px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.15); z-index:50; width:140px; padding:4px 0;">
+            <button onclick="duplicateSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
+            <button onclick="deleteSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
+          </div>
+        </div>
+      </div>
+      <div style="position:relative; z-index:2;">
+        <h4 class="asig-card-name">${item.s}</h4>
+        <div class="asig-card-code">${code}</div>
+      </div>
+      <div class="asig-progress-wrap" style="position:relative; z-index:2;">
+        <div class="asig-progress-lbl">
+          <span>Progreso</span>
+          <span style="color:${c.colorVal};">${pct}%</span>
+        </div>
+        <div class="asig-pb">
+          <div class="asig-pbf" style="width:${pct}%;background:${c.colorVal};"></div>
+        </div>
+      </div>
+      <div class="asig-card-footer" style="position:relative; z-index:2;">
+        <span class="asig-res-count"><i data-lucide="folder" style="width:14px;height:14px;color:var(--t3);"></i> ${sr.length} Recursos</span>
+        <a class="asig-det-btn" onclick="filterSubCli('${item.s}', ${item.cid})" style="color:${c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Semestre metrics
+  const pendingCount = R.filter(r => r.status !== 'completado').length;
+  
+  // Dynamic client summary calculations
+  const clientSummaryHtml = CLIENTS.map(c => {
+    const cSubjs = S.subjects[c.id];
+    const cR = S.resources.filter(r => r.clientId === c.id);
+    let pctSum = 0;
+    cSubjs.forEach(s => {
+      const sr = cR.filter(r => r.subject === s);
+      const done = sr.filter(r => r.status === 'completado').length;
+      pctSum += sr.length ? (done / sr.length * 100) : 0;
+    });
+    const cAvg = cSubjs.length ? Math.round(pctSum / cSubjs.length) : 0;
+    
+    return `<div class="asig-summary-item">
+      <span class="asig-summary-client">
+        <span class="asig-summary-dot" style="background:${c.colorVal};"></span> ${c.name}
+      </span>
+      <span class="asig-summary-vals">${cSubjs.length} Asig. • ${cAvg}%</span>
+    </div>`;
+  }).join('');
+
+  // Radial progress calculations
+  const circumference = 2 * Math.PI * 50;
+  const strokeDashoffset = circumference - (circumference * avgProgress / 100);
+
+  document.getElementById('asig-content').innerHTML = `
+    <div class="asig-pre"><i data-lucide="graduation-cap" style="width:14px;height:14px;"></i> ${activeClientName}</div>
+    <div class="asig-title-container">
+      <div class="asig-title-left">
+        <h2>Mis Asignaturas</h2>
+        <p>Gestión de recursos y seguimiento de progreso para el ciclo actual.</p>
+      </div>
+      <div class="asig-stats">
+        <div class="asig-stat-box">
+          <span class="asig-stat-lbl">Carga Total</span>
+          <span class="asig-stat-val">${totalAsig} Asignaturas</span>
+        </div>
+        <div class="asig-stat-box">
+          <span class="asig-stat-lbl">Promedio Avance</span>
+          <span class="asig-stat-val highlight">${avgProgress}%</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="asig-grid">
+      ${cardsHtml}
+    </div>
+    
+    <div class="asig-load-block">
+      <div class="asig-load-text">Cargando asignaturas adicionales...</div>
+      <button class="btn btn-sec" onclick="alert('Todas las asignaturas cargadas.')">Cargar todas</button>
+    </div>
+  `;
+  
+  lucide.createIcons();
+}
+function filterSubCli(s,cid){
+  if(curClient==='all')setClient(cid);
+  go('recursos');
+  setTimeout(()=>{
+    const sel = document.getElementById('fs');
+    if(sel){ sel.value=s; renderResources(); }
+  },60);
+}
+
+function toggleAsigMenu(event, idx) {
+  event.stopPropagation();
+  // Close all other dropdowns
+  document.querySelectorAll('.asig-dropdown').forEach(d => {
+    if (d.id !== `asig-drop-${idx}`) d.style.display = 'none';
+  });
+  const el = document.getElementById(`asig-drop-${idx}`);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function duplicateSubj(event, subjName, cid) {
+  event.stopPropagation();
+  const newName = prompt("Nombre de la asignatura duplicada:", subjName + " (Copia)");
+  if (!newName) return;
+  const cleanedName = newName.trim();
+  if (!cleanedName) return;
+  if (S.subjects[cid].includes(cleanedName)) {
+    alert("Ya existe una asignatura con ese nombre.");
+    return;
+  }
+  S.subjects[cid].push(cleanedName);
+  save();
+  renderAsig();
+}
+
+function deleteSubj(event, subjName, cid) {
+  event.stopPropagation();
+  const sr = S.resources.filter(r => r.subject === subjName && r.clientId === cid);
+  let msg = `¿Seguro que deseas eliminar la asignatura "${subjName}"?`;
+  if (sr.length > 0) {
+    msg += `\nEsto también eliminará permanentemente los ${sr.length} recursos asociados a ella.`;
+  }
+  if (!confirm(msg)) return;
+  
+  // Remove subject from the list
+  S.subjects[cid] = S.subjects[cid].filter(s => s !== subjName);
+  // Remove resources associated with it
+  S.resources = S.resources.filter(r => !(r.subject === subjName && r.clientId === cid));
+  
+  save();
+  renderAsig();
+}
+
+// Global click handler to close dropdowns when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.asig-dropdown').forEach(d => d.style.display = 'none');
+});
+
+// ══════════════════════════════════════════════════════════
+// INGRESOS VIEW
+// ══════════════════════════════════════════════════════════
+function renderIngresos(){
+  const R=cliRes(curClient);
+  const comp=R.filter(r=>r.status==='completado');
+  
+  // Show/Hide rate boxes dynamically based on active client filter!
+  const box0 = document.getElementById('rate-box-0');
+  const box1 = document.getElementById('rate-box-1');
+  const box2 = document.getElementById('rate-box-2');
+  if (box0 && box1 && box2) {
+    if (curClient === 'all') {
+      box0.style.display = 'block';
+      box1.style.display = 'block';
+      box2.style.display = 'block';
+    } else {
+      box0.style.display = curClient === 0 ? 'block' : 'none';
+      box1.style.display = curClient === 1 ? 'block' : 'none';
+      box2.style.display = curClient === 2 ? 'block' : 'none';
+    }
+  }
+
+  // Top subjects
+  const allSubjsForTop=curClient==='all'
+    ?CLIENTS.flatMap(c=>S.subjects[c.id].map(s=>({s,cid:c.id})))
+    :S.subjects[curClient].map(s=>({s,cid:curClient}));
+  const bySub=allSubjsForTop.map(({s,cid})=>{
+    const sc=comp.filter(r=>r.subject===s&&r.clientId===cid);
+    return{name:s,cid,count:sc.length,earned:sc.reduce((s,r)=>s+TIPOS[r.tipo].price,0)};
+  }).filter(x=>x.earned>0).sort((a,b)=>b.earned-a.earned);
+  
+  document.getElementById('ing-top').innerHTML=bySub.length
+    ?bySub.slice(0,5).map((s,i)=>{const c=CLIENTS.find(c=>c.id===s.cid);return`
+      <div class="trow">
+        <span style="font-weight:700;color:var(--t3);width:20px;">#${i+1}</span>
+        <div style="flex:1;min-width:0;margin-left:8px;">
+          <div style="font-weight:600;">${s.name}</div>
+          <div style="font-size:10.5px;color:var(--t3);">${c?.name} · ${s.count} completados</div>
+        </div>
+        <div class="tprice">${fM(s.earned)}</div>
+      </div>`;}).join('')
+    :'<div class="empty" style="padding:16px;"><div class="ei"><i data-lucide="bar-chart-2"></i></div><div class="et">Completa recursos para ver estadísticas</div></div>';
+
+  // Evolution chart
+  setTimeout(()=>{
+    const tc=isDark()?'#94a3b8':'#475569'; const gc=isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
+    const ctx2=document.getElementById('e-chart2'); if(!ctx2)return;
+    if(_ec2)_ec2.destroy(); _ec2=null;
+    const byM={};
+    comp.forEach(r=>{
+      const d=new Date(r.dueDate+'T00:00:00');
+      const k=MONTHS[d.getMonth()].slice(0,3);
+      byM[k]=(byM[k]||0)+TIPOS[r.tipo].price;
+    });
+    const mk=Object.keys(byM);
+    _ec2=new Chart(ctx2,{type:'line',data:{
+      labels:mk.length?mk:['Ene','Feb','Mar','Abr','May','Jun'],
+      datasets:[{label:'Ingresos Brutos',data:mk.length?mk.map(k=>byM[k]):[1200000,1900000,2200000,3100000,4284000],borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,.05)',tension:.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc},beginAtZero:true}}}});
+  },60);
+  lucide.createIcons();
+}
+
+// ══════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════
+function renderConfig(){
+  document.getElementById('cfg-clients-wrap').innerHTML=CLIENTS.map(c=>`
+    <div style="margin-bottom:16px; border-bottom:1px solid var(--br); padding-bottom:12px;">
+      <div style="font-weight:700;color:${c.colorVal};margin-bottom:8px;">${c.name}</div>
+      <div class="cfg-subj-list">
+        ${S.subjects[c.id].slice(0,5).map((s,i)=>`<div class="fg" style="margin-bottom:6px;"><label class="fl">Asig ${i+1}</label><input type="text" id="cs-${c.id}-${i}" value="${s}"></div>`).join('')}
+      </div>
+      <button class="btn btn-xs btn-p" style="margin-top:6px;background:${c.colorVal};border-color:${c.colorVal}" onclick="saveSubjects(${c.id})"><i data-lucide="save" style="width:12px;height:12px;"></i> Guardar ${c.short}</button>
+      <span id="cfg-msg-${c.id}" style="font-size:11px;color:var(--ok);margin-left:8px;"></span>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+function saveSubjects(cid){
+  const old=[...S.subjects[cid]];
+  const newNames=S.subjects[cid].slice(0,5).map((_,i)=>{const inp=document.getElementById(`cs-${cid}-${i}`); return inp?inp.value.trim()||S.subjects[cid][i]:S.subjects[cid][i]});
+  S.resources.filter(r=>r.clientId===cid).forEach(r=>{const idx=old.indexOf(r.subject); if(idx>=0)r.subject=newNames[idx]});
+  S.subjects[cid]=newNames; save();
+  const msg=document.getElementById(`cfg-msg-${cid}`);
+  msg.textContent='✅ Guardado'; setTimeout(()=>msg.textContent='',2000);
+}
+function saveCfg(){
+  S.cfg={urgDays:parseInt(document.getElementById('cfg-urg').value)||2,highDays:parseInt(document.getElementById('cfg-high').value)||4};
+  save(); updateDot();
+  document.getElementById('cfg-msg2').innerHTML='<div class="al al-g">✅ Configuración guardada.</div>';
+  setTimeout(()=>document.getElementById('cfg-msg2').innerHTML='',2000);
+}
+
+// ══════════════════════════════════════════════════════════
+// DATA IMPORT/EXPORT/DEMO
+// ══════════════════════════════════════════════════════════
+function importCSV(){
+  const csv=document.getElementById('csv-in').value.trim();
+  const res=document.getElementById('imp-res');
+  if(!csv){res.innerHTML='<div class="al al-w">⚠️ Pega datos CSV.</div>';return}
+  const lines=csv.split('\n').filter(l=>l.trim());
+  if(lines.length<2){res.innerHTML='<div class="al al-w">⚠️ Datos inválidos.</div>';return}
+  const hdr=lines[0].split(',').map(h=>h.trim().toLowerCase());
+  let imp=0;
+  for(let i=1;i<lines.length;i++){
+    const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+    const row={}; hdr.forEach((h,j)=>row[h]=cols[j]||'');
+    const cid=(row.cliente||'').toLowerCase().includes('uniacc')?1:(row.cliente||'').toLowerCase().includes('inacap')?2:0;
+    const subj=S.subjects[cid].includes(row.asignatura)?row.asignatura:S.subjects[cid][0];
+    const tipo=row.tipo||'tipo1';
+    const kind=row.recurso||'diagramacion';
+    const ass=row.fecha_asignacion||new Date().toISOString().split('T')[0];
+    const dObj=new Date(ass+'T00:00:00'); dObj.setDate(dObj.getDate()+7);
+    S.resources.push({id:genId(),title:row.titulo||`Recurso ${i}`,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:dObj.toISOString().split('T')[0],assignedBy:row.di||'Admin',status:'pendiente',notes:''});
+    imp++;
+  }
+  save(); updateDot(); renderDash();
+  res.innerHTML=`<div class="al al-g">✅ ${imp} recursos importados.</div>`;
+  document.getElementById('csv-in').value='';
+}
+function exportCSV(){
+  const hdr='id,titulo,cliente,asignatura,tipo,recurso,fecha_asignacion,fecha_limite,di,estado';
+  const rows=S.resources.map(r=>[r.id,r.title,CLIENTS.find(c=>c.id===r.clientId)?.name||r.clientId,r.subject,r.tipo,r.kind,r.assignedDate,r.dueDate,r.assignedBy||'',r.status].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','));
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent([hdr,...rows].join('\n')); a.download='resourceflow_export.csv'; a.click();
+}
+function clearAll(){if(!confirm('¿Borrar todos los recursos?'))return; S.resources=[]; save(); updateDot(); renderDash(); alert('Base de datos restablecida.')}
+function loadDemo(){
+  const addD=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().split('T')[0]};
+  const demo=[
+    {clientId:0,title:'Guia de Ejercicios Cálculo I',subject:'Calidad e Inocuidad Alimentaria',tipo:'tipo1',kind:'diagramacion',assignedDate:addD(-5),dueDate:addD(2),assignedBy:'CÁLC-102',status:'completado',notes:'Guía consolidada de ejercicios'},
+    {clientId:1,title:'Análisis de Caso Audiovisual',subject:'AFGIAH26 Inteligencia Artificial para el Desarrollo de Habilidades Académicas',tipo:'uniacc_10',kind:'video_canva',assignedDate:addD(-3),dueDate:addD(4),assignedBy:'COM-204',status:'en_progreso',notes:'Revisión de marca'},
+    {clientId:2,title:'Laboratorio Redes CISCO',subject:'Marketing Digital - AEMO15 (18s)',tipo:'inacap_c1',kind:'presentacion_ppt',assignedDate:addD(-1),dueDate:addD(0),assignedBy:'INF-330',status:'pendiente',notes:'CISCO INF-330'},
+    {clientId:0,title:'Cápsula Video Animación',subject:'Calidad e Inocuidad Alimentaria',tipo:'tipo1',kind:'video_canva',assignedDate:addD(-6),dueDate:addD(3),assignedBy:'CÁLC-102',status:'pendiente',notes:'Animado'},
+    {clientId:1,title:'Evaluación Unidad I — Branding',subject:'AFGIAH26 Inteligencia Artificial para el Desarrollo de Habilidades Académicas',tipo:'uniacc_20',kind:'interactivo_genially',assignedDate:addD(-8),dueDate:addD(-2),assignedBy:'COM-204',status:'completado',notes:'Genially interactivo'}
+  ];
+  demo.forEach(d=>S.resources.push({id:genId(),...d}));
+  save(); updateDot(); renderDash();
+  document.getElementById('imp-res').innerHTML='<div class="al al-g">✅ 5 recursos demo cargados de forma consolidada.</div>';
+  setTimeout(()=>document.getElementById('pnl-import').style.display='none',1500);
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+load();
+// Enforce the custom subjects layout on boot
+S.subjects = CLIENTS.map((_, i) => [...DEF_SUBJECTS[i]]);
+// Force the database to start completely at zero, to be filled dynamically as resources are created
+S.resources = [];
+save();
+updateDot();
+renderDash();
+fillFilters();
+document.getElementById('modal-edit').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEdit()});
+
+// Initialize modern Lucide flat icons globally
+lucide.createIcons();
+</script>
+</body>
+</html>
