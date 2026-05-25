@@ -1875,7 +1875,7 @@ function renderProjects() {
   container.innerHTML = CLIENTS.map(c => {
     const count = S.resources.filter(r => r.clientId === c.id).length;
     const deleteBtn = CLIENTS.length > 1 
-      ? `<button class="btn btn-circle btn-circle-delete" onclick="deleteClient(${c.id})" style="width:28px; height:28px;" title="Eliminar ${c.name}"><i data-lucide="trash-2" style="width:12px; height:12px;"></i></button>`
+      ? `<button class="btn-circle btn-circle-delete" onclick="deleteClient(${c.id})" style="width:32px; height:32px; padding:0; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" title="Eliminar ${c.name}"><i data-lucide="trash-2" style="width:14px; height:14px;"></i></button>`
       : '';
     return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border:1px solid var(--br); border-radius:var(--rs); background:var(--s2); margin-bottom: 6px;">
       <div style="display:flex; align-items:center; gap:8px;">
