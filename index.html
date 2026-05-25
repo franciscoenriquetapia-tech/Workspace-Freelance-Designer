@@ -2519,7 +2519,9 @@ function renderCalendar(){
         const titleEscaped = r.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const tooltipHtml = `<strong>${titleEscaped}</strong><br><span style='color:var(--t3);'>Estado:</span> <strong>${stLabel}</strong><br><span style='color:var(--t3);'>Fecha Límite:</span> <strong>${formattedDate}</strong>`;
         
-        return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${c?`[${c.short}] `:''} ${r.title}</div>`;
+        const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); vertical-align: middle;">${stLabel}</span>`;
+        
+        return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c?`[${c.short}] `:''} ${r.title}</div>`;
       }).join('')}
     </div>`;
   }
