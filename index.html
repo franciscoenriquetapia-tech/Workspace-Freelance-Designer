@@ -310,7 +310,7 @@ body {
 /* ── KPI GRID ── */
 .kgrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -1996,6 +1996,10 @@ function renderDash(){
     <div class="kpi">
       <div class="kl">RECURSOS TOTALES</div>
       <div class="kv">${R.length} <span class="kbadge">${R.length > 0 ? '+12%' : '0%'}</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kl">PENDIENTES</div>
+      <div class="kv" style="color:var(--wa)">${pend.length} <span class="kicon" style="color:var(--wa);"><i data-lucide="clipboard-list"></i></span></div>
     </div>
     <div class="kpi">
       <div class="kl">EN PROGRESO</div>
