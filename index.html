@@ -749,12 +749,12 @@ select:focus, input:focus, textarea:focus {
 
 /* ── CALENDAR ── */
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
-.cal-day { background: var(--s2); border-radius: var(--rs); border: 1px solid var(--br); padding: 8px; height: 110px; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; }
+.cal-day { background: var(--s2); border-radius: var(--rs); border: 1px solid var(--br); padding: 8px; height: 130px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; scrollbar-width: thin; }
 .cal-day::-webkit-scrollbar { width: 3px; }
 .cal-day::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
 .cal-day.today { border-color: var(--pri); background: var(--prid); }
-.cdn { font-size: 12px; font-weight: 700; font-family: var(--mo); margin-bottom: 6px; }
-.cd-evt { font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-bottom: 3px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.2; }
+.cdn { font-size: 11.5px; font-weight: 700; font-family: var(--mo); margin-bottom: 2px; color: var(--tx); }
+.cd-evt { font-size: 9.5px; padding: 5px 7px; border-radius: 4px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.25; border: 1px solid rgba(0,0,0,0.03); }
 
 /* ── TIPO ROW ── */
 .trow { display: flex; align-items: center; gap: 9px; padding: 12px 0; border-bottom: 1px solid var(--br); }
@@ -2567,9 +2567,14 @@ function renderCalendar(){
           badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
         }
         
-        const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
-        
-        return`<div class="cd-evt" style="background:${bg};color:${cl}" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c?`[${c.short}] `:''} ${r.title}</div>`;
+        const clientText = c ? `<span style="font-size:7.5px; font-weight:800; opacity:0.85; letter-spacing:0.3px; text-transform:uppercase;">${c.short}</span>` : '';
+        return`<div class="cd-evt" style="background:${bg};color:${cl}; display:flex; flex-direction:column; gap:3px;" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom: 1px solid rgba(0,0,0,0.03); padding-bottom: 2px;">
+            ${statusBadge}
+            ${clientText}
+          </div>
+          <div style="font-size:9.2px; font-weight:600; line-height:1.2; padding-top:1px;">${r.title}</div>
+        </div>`;
       }).join('')}
     </div>`;
   }
