@@ -1412,12 +1412,24 @@ select:focus, input:focus, textarea:focus {
       <!-- ══════════════════════════════════════════ -->
       <div class="tab" id="tab-c-calendario">
         <div class="card">
-          <div class="sh">
-            <span class="st"><i data-lucide="calendar" style="margin-right:6px;"></i>Calendario de entregas</span>
-            <div style="display:flex;align-items:center;gap:6px">
-              <button class="btn btn-sm" onclick="calPrev()"><i data-lucide="chevron-left"></i></button>
-              <span class="sc" id="cal-lbl" style="font-weight:700;"></span>
-              <button class="btn btn-sm" onclick="calNext()"><i data-lucide="chevron-right"></i></button>
+          <div class="table-header" style="margin-bottom:16px;">
+            <h3 class="table-title" style="display:flex;align-items:center;gap:8px;"><i data-lucide="calendar" style="color:var(--pri);width:18px;height:18px;"></i>Calendario de entregas</h3>
+            
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <!-- Calendar filters -->
+              <select id="cal-fs" onchange="renderCalendar()" style="width:160px; padding:6px 10px; height:32px; font-size:12px;"></select>
+              <select id="cal-fst" onchange="renderCalendar()" style="width:130px; padding:6px 10px; height:32px; font-size:12px;">
+                <option value="all">Todos los estados</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="en_progreso">En progreso</option>
+                <option value="completado">Completados</option>
+              </select>
+              
+              <div style="display:flex;align-items:center;gap:6px">
+                <button class="btn btn-sm" onclick="calPrev()"><i data-lucide="chevron-left"></i></button>
+                <span class="sc" id="cal-lbl" style="font-weight:700; font-size:13px; min-width:90px; text-align:center;"></span>
+                <button class="btn btn-sm" onclick="calNext()"><i data-lucide="chevron-right"></i></button>
+              </div>
             </div>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
@@ -2453,7 +2465,20 @@ function clearForm(){
 // ══════════════════════════════════════════════════════════
 // CALENDAR
 // ══════════════════════════════════════════════════════════
+function fillCalendarFilters(){
+  const sel=document.getElementById('cal-fs');
+  if(!sel)return;
+  const curSubj = sel.value;
+  const R_filtered = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
+  const subjs=[...new Set(R_filtered.map(r=>r.subject))].filter(Boolean);
+  sel.innerHTML='<option value="all">Todas las asignaturas</option>'+subjs.map(s=>`<option value="${s}"${s===curSubj?' selected':''}>${s}</option>`).join('');
+}
+
 function renderCalendar(){
+  fillCalendarFilters();
+  const fs = document.getElementById('cal-fs')?.value || 'all';
+  const fst = document.getElementById('cal-fst')?.value || 'all';
+
   const now=new Date();
   const target=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
   const year=target.getFullYear(),month=target.getMonth();
@@ -2462,7 +2487,16 @@ function renderCalendar(){
   const daysInM=new Date(year,month+1,0).getDate();
   const today=new Date(); today.setHours(0,0,0,0);
   const byDay={};
-  cliRes(curClient).forEach(r=>{if(!r.dueDate)return;const d=new Date(r.dueDate+'T00:00:00');if(d.getFullYear()===year&&d.getMonth()===month){const k=d.getDate();(byDay[k]||(byDay[k]=[])).push(r)}});
+
+  let R = cliRes(curClient);
+  if(fs !== 'all') {
+    R = R.filter(r => r.subject === fs);
+  }
+  if(fst !== 'all') {
+    R = R.filter(r => r.status === fst);
+  }
+
+  R.forEach(r=>{if(!r.dueDate)return;const d=new Date(r.dueDate+'T00:00:00');if(d.getFullYear()===year&&d.getMonth()===month){const k=d.getDate();(byDay[k]||(byDay[k]=[])).push(r)}});
   let html=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div style="text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);">${d}</div>`).join('');
   for(let i=0;i<startOffset;i++)html+='<div></div>';
   for(let day=1;day<=daysInM;day++){
