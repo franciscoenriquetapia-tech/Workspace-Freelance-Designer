@@ -2017,6 +2017,44 @@ async function linkSyncKey() {
   }
 }
 
+// Realtime sync poll every 15 seconds to fetch remote changes from Firebase
+setInterval(async () => {
+  const key = localStorage.getItem('rf_sync_key');
+  if (!key) return;
+  
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl && statusEl.innerHTML.includes('Sincronizando')) return;
+  
+  try {
+    const response = await fetch(`${DB_BASE}${key.toUpperCase()}.json`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.S && data.CLIENTS) {
+        const localSStr = JSON.stringify(S);
+        const localClientsStr = JSON.stringify(CLIENTS);
+        const remoteSStr = JSON.stringify(data.S);
+        const remoteClientsStr = JSON.stringify(data.CLIENTS);
+        
+        if (localSStr !== remoteSStr || localClientsStr !== remoteClientsStr) {
+          if (document.getElementById('modal-edit').style.display === 'flex' || 
+              document.getElementById('modal-projects').style.display === 'flex') {
+            return; 
+          }
+          
+          S = data.S;
+          CLIENTS = data.CLIENTS;
+          localStorage.setItem('rfust_v5', JSON.stringify(S));
+          localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+          rerenderAllData();
+          console.log("Realtime sync: updated local state with remote Firebase changes.");
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Realtime poll failed:", e);
+  }
+}, 15000);
+
 // ══════════════════════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════════════════════
