@@ -1860,7 +1860,7 @@ function save(){
   saveCloud();
 }
 
-const DB_BASE = "https://jsonblob.com/api/jsonBlob/";
+const DB_BASE = "https://jsonblob.com/api/jsonBlob";
 
 async function saveCloud() {
   const key = localStorage.getItem('rf_sync_key');
@@ -1876,7 +1876,7 @@ async function saveCloud() {
     statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Sincronizando...`;
   }
   try {
-    const response = await fetch(`${DB_BASE}${blobId}`, {
+    const response = await fetch(`${DB_BASE}/${blobId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -1969,7 +1969,7 @@ async function loadCloud() {
   }
   
   try {
-    const response = await fetch(`${DB_BASE}${blobId}`, {
+    const response = await fetch(`${DB_BASE}/${blobId}`, {
       headers: {
         'Accept': 'application/json'
       }
@@ -2040,7 +2040,7 @@ async function linkSyncKey() {
   const blobId = keyInput.substring(8);
   
   try {
-    const response = await fetch(`${DB_BASE}${blobId}`, {
+    const response = await fetch(`${DB_BASE}/${blobId}`, {
       headers: {
         'Accept': 'application/json'
       }
