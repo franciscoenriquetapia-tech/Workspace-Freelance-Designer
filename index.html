@@ -94,6 +94,7 @@ body {
 .app-container {
   display: flex;
   min-height: 100vh;
+  width: 100%;
 }
 
 /* ── SIDEBAR ── */
@@ -1146,6 +1147,14 @@ select:focus, input:focus, textarea:focus {
 }
 
 @media(max-width: 768px) {
+  .app-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
   .sidebar {
     display: none !important;
   }
@@ -1198,28 +1207,38 @@ select:focus, input:focus, textarea:focus {
   }
   
   .content-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     margin-bottom: 60px !important;
     padding: 0 !important;
+    flex: 1 !important;
+    box-sizing: border-box !important;
   }
   
   .main {
     padding: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   .hdr {
-    padding: 12px 16px !important;
+    padding: 16px !important;
     height: auto !important;
     min-height: 64px;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 14px;
     position: static !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   .hdr-left {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
     width: 100%;
   }
   
@@ -1252,6 +1271,27 @@ select:focus, input:focus, textarea:focus {
   .mid-grid, .asig-grid, .asig-bottom-row {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
+  }
+
+  .table-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  
+  .table-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  
+  .table-actions select, 
+  .table-actions button, 
+  .search-input-wrap, 
+  .search-input {
+    width: 100% !important;
   }
   
   .modal-content {
