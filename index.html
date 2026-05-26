@@ -1141,19 +1141,189 @@ select:focus, input:focus, textarea:focus {
   gap: 6px;
 }
 
-@media(max-width: 900px) {
-  .app-container { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; }
-  .kgrid { grid-template-columns: repeat(2, 1fr); }
-  .mid-grid { grid-template-columns: 1fr; }
-  .asig-grid { grid-template-columns: 1fr; }
-  .asig-bottom-row { grid-template-columns: 1fr; }
+.bottom-nav {
+  display: none;
+}
+
+@media(max-width: 768px) {
+  .sidebar {
+    display: none !important;
+  }
+  
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--sf);
+    border-top: 1px solid var(--br);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 0 10px;
+  }
+  
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    background: none;
+    border: none;
+    color: var(--t3);
+    font-size: 9.5px;
+    font-weight: 600;
+    font-family: var(--fn);
+    gap: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+    padding: 6px 0;
+  }
+  
+  .bottom-nav-item svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2px;
+  }
+  
+  .bottom-nav-item.on {
+    color: var(--pri);
+  }
+  
+  .content-area {
+    margin-bottom: 60px !important;
+    padding: 0 !important;
+  }
+  
+  .main {
+    padding: 12px !important;
+  }
+  
+  .hdr {
+    padding: 12px 16px !important;
+    height: auto !important;
+    min-height: 64px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    position: static !important;
+  }
+  
+  .hdr-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .hdr-right {
+    display: none !important;
+  }
+  
+  .cbar {
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .cbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .ctab {
+    scroll-snap-align: start;
+  }
+  
+  .kgrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  
+  .mid-grid, .asig-grid, .asig-bottom-row {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .modal-content {
+    width: 95% !important;
+    padding: 16px !important;
+    margin: 10px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .form-row-2, .form-row-3 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .cal-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .cal-grid {
+    gap: 2px !important;
+  }
+  
+  .cal-day {
+    min-height: 70px !important;
+    padding: 4px !important;
+  }
+  
+  .cal-day-num {
+    font-size: 10px !important;
+  }
+  
+  .cal-evt {
+    font-size: 8px !important;
+    padding: 2px 4px !important;
+  }
 }
 </style>
 </head>
 <body>
 
 <div class="app-container">
+
+  <!-- BOTTOM NAVIGATION FOR MOBILE -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item on" id="btn-bottom-dashboard" onclick="go('dashboard')">
+      <i data-lucide="layout-dashboard"></i>
+      <span>Panel</span>
+    </button>
+    <button class="bottom-nav-item" id="btn-bottom-recursos" onclick="go('recursos')">
+      <i data-lucide="clipboard-list"></i>
+      <span>Recursos</span>
+    </button>
+    <button class="bottom-nav-item" id="btn-bottom-calendario" onclick="go('calendario')">
+      <i data-lucide="calendar"></i>
+      <span>Calendario</span>
+    </button>
+    <button class="bottom-nav-item" id="btn-bottom-asignaturas" onclick="go('asignaturas')">
+      <i data-lucide="book-open"></i>
+      <span>Asignaturas</span>
+    </button>
+    <button class="bottom-nav-item" id="btn-bottom-ingresos" onclick="go('ingresos')">
+      <i data-lucide="wallet"></i>
+      <span>Ganancias</span>
+    </button>
+    <button class="bottom-nav-item" id="btn-bottom-config" onclick="go('config')">
+      <i data-lucide="settings"></i>
+      <span>Config</span>
+    </button>
+  </nav>
 
   <!-- LEFT SIDEBAR -->
   <aside class="sidebar">
@@ -2104,8 +2274,11 @@ function rerender(){
 function go(tab){
   document.querySelectorAll('.tab').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.bottom-nav-item').forEach(el=>el.classList.remove('on'));
+  
   document.getElementById('tab-c-'+tab).classList.add('on');
-  document.getElementById('tab-'+tab).classList.add('on');
+  document.getElementById('tab-'+tab)?.classList.add('on');
+  document.getElementById('btn-bottom-'+tab)?.classList.add('on');
   
   // Set Active Header Title
   const titles = {
