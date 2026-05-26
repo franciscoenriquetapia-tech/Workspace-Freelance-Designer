@@ -1569,9 +1569,10 @@ select:focus, input:focus, textarea:focus {
               
               <div class="fg" style="margin-bottom:12px;">
                 <label class="fl">Tu Clave Única de Sincronización</label>
-                <div style="display:flex; gap:6px;">
-                  <input type="text" id="cfg-sync-key" readonly style="background:var(--s2); font-weight:700; font-family:var(--mo); font-size:12.5px; color:var(--tx); flex:1;" value="Generando clave...">
-                  <button class="btn btn-sec" onclick="copySyncKey()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px;" title="Copiar Clave"><i data-lucide="copy" style="width:14px;height:14px;"></i> Copiar</button>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <input type="text" id="cfg-sync-key" readonly style="background:var(--s2); font-weight:700; font-family:var(--mo); font-size:12.5px; color:var(--tx); flex:1; min-width:180px;" value="Generando clave...">
+                  <button class="btn btn-sec" onclick="copySyncKey()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px;" title="Copiar Clave"><i data-lucide="copy" style="width:14px;height:14px;"></i> Copiar Clave</button>
+                  <button class="btn btn-sec" onclick="copySyncLink()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px; background:var(--pril); border:1px solid var(--pria); color:var(--pri);" title="Copiar Enlace de Sincronización Automática"><i data-lucide="share-2" style="width:14px;height:14px;"></i> Copiar Enlace Auto-Sync</button>
                 </div>
               </div>
 
@@ -2004,6 +2005,16 @@ function copySyncKey() {
     const msg = document.getElementById('sync-msg');
     msg.innerHTML = '<div class="al al-g" style="padding:6px 10px; font-size:11px; margin-top:8px;">✅ ¡Clave copiada al portapapeles!</div>';
     setTimeout(() => { msg.innerHTML = ''; }, 2000);
+  });
+}
+
+function copySyncLink() {
+  const key = document.getElementById('cfg-sync-key').value;
+  const link = `${window.location.origin}${window.location.pathname}?sync=${key}`;
+  navigator.clipboard.writeText(link).then(() => {
+    const msg = document.getElementById('sync-msg');
+    msg.innerHTML = '<div class="al al-g" style="padding:6px 10px; font-size:11px; margin-top:8px;">✅ ¡Enlace de sincronización automática copiado al portapapeles!</div>';
+    setTimeout(() => { msg.innerHTML = ''; }, 3000);
   });
 }
 
@@ -3384,6 +3395,12 @@ function generateDefaultSantoTomasResources() {
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const urlSyncKey = urlParams.get('sync');
+if (urlSyncKey && urlSyncKey.toUpperCase().startsWith('RF-SYNC-') && urlSyncKey.length >= 30) {
+  localStorage.setItem('rf_sync_key', urlSyncKey.toUpperCase());
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
 load();
 loadCloud();
 // Enforce the custom subjects layout on boot
