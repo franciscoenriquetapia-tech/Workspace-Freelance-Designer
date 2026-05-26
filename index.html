@@ -1859,28 +1859,36 @@ function save(){
   saveCloud();
 }
 
-const DB_BASE = "https://workspace-freelance-default-rtdb.firebaseio.com/users/";
-
-function generateSyncKey() {
-  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `rf-sync-${rand}`;
-}
+const DB_BASE = "https://jsonblob.com/api/jsonBlob/";
 
 async function saveCloud() {
   const key = localStorage.getItem('rf_sync_key');
   if (!key) return;
+  
+  let blobId = key;
+  if (key.toUpperCase().startsWith('RF-SYNC-')) {
+    blobId = key.substring(8);
+  }
+  
   const statusEl = document.getElementById('sync-status');
   if (statusEl) {
     statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Sincronizando...`;
   }
   try {
-    await fetch(`${DB_BASE}${key}.json`, {
+    const response = await fetch(`${DB_BASE}${blobId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ S, CLIENTS })
     });
-    if (statusEl) {
-      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube`;
+    if (response.ok) {
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube`;
+      }
+    } else {
+      throw new Error("HTTP error " + response.status);
     }
   } catch (e) {
     console.error("Cloud sync failed:", e);
@@ -1892,25 +1900,66 @@ async function saveCloud() {
 
 async function loadCloud() {
   let key = localStorage.getItem('rf_sync_key');
+  const statusEl = document.getElementById('sync-status');
+  
   if (!key) {
-    key = generateSyncKey();
-    localStorage.setItem('rf_sync_key', key);
-    const keyEl = document.getElementById('cfg-sync-key');
-    if(keyEl) keyEl.value = key;
-    await saveCloud();
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Inicializando sincronización...`;
+    }
+    try {
+      const response = await fetch(DB_BASE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ S, CLIENTS })
+      });
+      if (response.ok) {
+        const loc = response.headers.get('Location');
+        if (loc) {
+          const blobId = loc.substring(loc.lastIndexOf('/') + 1);
+          key = `RF-SYNC-${blobId}`;
+          localStorage.setItem('rf_sync_key', key);
+          const keyEl = document.getElementById('cfg-sync-key');
+          if(keyEl) keyEl.value = key;
+          
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube`;
+          }
+        } else {
+          throw new Error("No Location header returned");
+        }
+      } else {
+        throw new Error("HTTP error " + response.status);
+      }
+    } catch (e) {
+      console.error("Failed to initialize cloud storage:", e);
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Modo local (Sin conexión)`;
+      }
+    }
     return;
   }
   
   const keyEl = document.getElementById('cfg-sync-key');
   if(keyEl) keyEl.value = key;
   
-  const statusEl = document.getElementById('sync-status');
   if (statusEl) {
     statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Cargando desde la nube...`;
   }
   
+  let blobId = key;
+  if (key.toUpperCase().startsWith('RF-SYNC-')) {
+    blobId = key.substring(8);
+  }
+  
   try {
-    const response = await fetch(`${DB_BASE}${key}.json`);
+    const response = await fetch(`${DB_BASE}${blobId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     if (response.ok) {
       const data = await response.json();
       if (data && data.S && data.CLIENTS) {
@@ -1924,6 +1973,8 @@ async function loadCloud() {
         }
         rerenderAllData();
       }
+    } else {
+      throw new Error("HTTP error " + response.status);
     }
   } catch (e) {
     console.error("Cloud load failed:", e);
@@ -1953,38 +2004,53 @@ function copySyncKey() {
 }
 
 async function linkSyncKey() {
-  const keyInput = document.getElementById('cfg-link-key').value.trim().toUpperCase();
+  const keyInput = document.getElementById('cfg-link-key').value.trim();
   const msg = document.getElementById('sync-msg');
-  if (!keyInput.startsWith('RF-SYNC-')) {
+  if (!keyInput.toUpperCase().startsWith('RF-SYNC-')) {
     msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">⚠️ Formato de clave inválido</div>';
     return;
   }
   
-  msg.innerHTML = '<div class="al" style="padding:6px 10px; font-size:11px; margin-top:8px; color:var(--pri); background:var(--pril);">🔗 Conectando y descargando datos...</div>';
+  msg.innerHTML = '<div class="al" style="padding:6px 10px; font-size:11px; margin-top:8px; color:var(--pri); background:var(--pril); border:1px solid var(--pria);">🔗 Conectando y descargando datos...</div>';
+  
+  const blobId = keyInput.substring(8);
   
   try {
-    const response = await fetch(`${DB_BASE}${keyInput}.json`);
+    const response = await fetch(`${DB_BASE}${blobId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     if (response.ok) {
       const data = await response.json();
       if (data && data.S && data.CLIENTS) {
-        localStorage.setItem('rf_sync_key', keyInput);
+        const uppercaseKey = `RF-SYNC-${blobId}`;
+        localStorage.setItem('rf_sync_key', uppercaseKey);
         S = data.S;
         CLIENTS = data.CLIENTS;
         localStorage.setItem('rfust_v5', JSON.stringify(S));
         localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
         
-        document.getElementById('cfg-sync-key').value = keyInput;
+        document.getElementById('cfg-sync-key').value = uppercaseKey;
         document.getElementById('cfg-link-key').value = '';
         msg.innerHTML = '<div class="al al-g" style="padding:6px 10px; font-size:11px; margin-top:8px;">✅ ¡Computador vinculado y sincronizado con éxito!</div>';
-        setTimeout(() => { msg.innerHTML = ''; }, 3000);
         
+        const statusEl = document.getElementById('sync-status');
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube`;
+        }
+        
+        setTimeout(() => { msg.innerHTML = ''; }, 3000);
         rerenderAllData();
       } else {
-        msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">⚠️ La clave no contiene datos o no existe</div>';
+        throw new Error("Data format is invalid");
       }
+    } else {
+      throw new Error("HTTP error " + response.status);
     }
   } catch (e) {
-    msg.innerHTML = '<div class="al al-e" style="padding:6px 10px; font-size:11px; margin-top:8px;">❌ Error de conexión al vincular</div>';
+    console.error("Cloud linking failed:", e);
+    msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">❌ Error al vincular clave. Asegúrate de que exista y sea válida.</div>';
   }
 }
 
