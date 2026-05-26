@@ -1900,6 +1900,10 @@ async function saveCloud() {
 
 async function loadCloud() {
   let key = localStorage.getItem('rf_sync_key');
+  if (key && key.length < 30) {
+    localStorage.removeItem('rf_sync_key');
+    key = null;
+  }
   const statusEl = document.getElementById('sync-status');
   
   if (!key) {
@@ -2006,8 +2010,8 @@ function copySyncKey() {
 async function linkSyncKey() {
   const keyInput = document.getElementById('cfg-link-key').value.trim();
   const msg = document.getElementById('sync-msg');
-  if (!keyInput.toUpperCase().startsWith('RF-SYNC-')) {
-    msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">⚠️ Formato de clave inválido</div>';
+  if (!keyInput.toUpperCase().startsWith('RF-SYNC-') || keyInput.length < 30) {
+    msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">⚠️ Formato de clave inválido o antiguo</div>';
     return;
   }
   
