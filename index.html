@@ -1862,6 +1862,14 @@ function save(){
 
 const DB_BASE = "https://jsonblob.com/api/jsonBlob";
 
+function getAdblockWarning(errMsg) {
+  const lower = String(errMsg).toLowerCase();
+  if (lower.includes('fetch') || lower.includes('network') || lower.includes('cors') || lower.includes('blocked')) {
+    return `<br><span style="color:#d97706; font-size:10.5px; font-weight:600; display:block; margin-top:5px; line-height:1.4;">⚠️ ¿Usas Brave o un Bloqueador de Anuncios (Adblocker)? Por favor, desactiva los escudos de Brave o tu Adblocker para este sitio. Los bloqueadores impiden la conexión al servidor de base de datos jsonblob.com.</span>`;
+  }
+  return "";
+}
+
 async function saveCloud() {
   const key = localStorage.getItem('rf_sync_key');
   if (!key) return;
@@ -1894,7 +1902,7 @@ async function saveCloud() {
   } catch (e) {
     console.error("Cloud sync failed:", e);
     if (statusEl) {
-      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Error de conexión: ${e.message}`;
+      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Error de conexión: ${e.message}${getAdblockWarning(e.message)}`;
     }
   }
 }
@@ -1950,7 +1958,7 @@ async function loadCloud() {
     } catch (e) {
       console.error("Failed to initialize cloud storage:", e);
       if (statusEl) {
-        statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Modo local: ${e.message}`;
+        statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Modo local: ${e.message}${getAdblockWarning(e.message)}`;
       }
     }
     return;
@@ -1993,7 +2001,7 @@ async function loadCloud() {
   } catch (e) {
     console.error("Cloud load failed:", e);
     if (statusEl) {
-      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Modo local: ${e.message}`;
+      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Modo local: ${e.message}${getAdblockWarning(e.message)}`;
     }
   }
 }
