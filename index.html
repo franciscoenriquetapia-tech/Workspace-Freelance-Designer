@@ -1146,6 +1146,12 @@ select:focus, input:focus, textarea:focus {
   display: none;
 }
 
+.earnings-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+}
+
 @media(max-width: 768px) {
   .app-container {
     width: 100% !important;
@@ -1268,7 +1274,7 @@ select:focus, input:focus, textarea:focus {
     gap: 8px !important;
   }
   
-  .mid-grid, .asig-grid, .asig-bottom-row {
+  .mid-grid, .asig-grid, .asig-bottom-row, .earnings-grid {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
   }
@@ -1673,7 +1679,7 @@ select:focus, input:focus, textarea:focus {
       <!--                INGRESOS                   -->
       <!-- ══════════════════════════════════════════ -->
       <div class="tab" id="tab-c-ingresos">
-        <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="earnings-grid" style="margin-bottom: 20px;">
           
           <div style="display: flex; flex-direction: column; gap: 20px;">
             <div class="card">
