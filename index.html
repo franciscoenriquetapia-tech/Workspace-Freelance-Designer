@@ -1559,6 +1559,36 @@ select:focus, input:focus, textarea:focus {
             <button class="btn btn-p" onclick="saveCfg()"><i data-lucide="save"></i> Guardar configuración</button>
             <div id="cfg-msg2" style="margin-top:8px"></div>
           </div>
+          
+          <div class="card" style="margin-top:20px;">
+            <div class="sh"><span class="st"><i data-lucide="cloud-lightning" style="margin-right:6px; color:var(--pri);"></i>Sincronización en la Nube</span></div>
+            <div style="margin-top:12px; font-family:var(--fn);">
+              <p style="font-size:11.5px; color:var(--t3); line-height:1.45; margin-bottom:12px; font-weight:500;">
+                Tus datos se sincronizan automáticamente en la nube. Guarda tu clave única para vincular otros computadores.
+              </p>
+              
+              <div class="fg" style="margin-bottom:12px;">
+                <label class="fl">Tu Clave Única de Sincronización</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="text" id="cfg-sync-key" readonly style="background:var(--s2); font-weight:700; font-family:var(--mo); font-size:12.5px; color:var(--tx); flex:1;" value="Generando clave...">
+                  <button class="btn btn-sec" onclick="copySyncKey()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px;" title="Copiar Clave"><i data-lucide="copy" style="width:14px;height:14px;"></i> Copiar</button>
+                </div>
+              </div>
+
+              <div class="fg" style="margin-bottom:12px;">
+                <label class="fl" style="color:var(--pri);">Vincular Clave Existente</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="text" id="cfg-link-key" placeholder="Pega una clave rf-sync-xxxx aquí..." style="font-family:var(--mo); font-size:12.5px; flex:1;">
+                  <button class="btn btn-p" onclick="linkSyncKey()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="link"></i> Vincular</button>
+                </div>
+              </div>
+
+              <div id="sync-status" style="font-size:11px; font-weight:700; color:var(--ok); display:flex; align-items:center; gap:6px; margin-top:8px;">
+                <span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Activo en la nube
+              </div>
+              <div id="sync-msg" style="margin-top:8px;"></div>
+            </div>
+          </div>
           <div class="card">
             <div class="sh"><span class="st"><i data-lucide="book-open" style="margin-right:6px;"></i>Asignaturas por Institución</span></div>
             <div id="cfg-clients-wrap" style="margin-top:12px;"></div>
@@ -1826,6 +1856,136 @@ function load(){
 function save(){
   localStorage.setItem('rfust_v5',JSON.stringify(S));
   localStorage.setItem('rfust_clients_v5',JSON.stringify(CLIENTS));
+  saveCloud();
+}
+
+const DB_BASE = "https://workspace-freelance-default-rtdb.firebaseio.com/users/";
+
+function generateSyncKey() {
+  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `rf-sync-${rand}`;
+}
+
+async function saveCloud() {
+  const key = localStorage.getItem('rf_sync_key');
+  if (!key) return;
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Sincronizando...`;
+  }
+  try {
+    await fetch(`${DB_BASE}${key}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ S, CLIENTS })
+    });
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube`;
+    }
+  } catch (e) {
+    console.error("Cloud sync failed:", e);
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Error de conexión (Guardado en local)`;
+    }
+  }
+}
+
+async function loadCloud() {
+  let key = localStorage.getItem('rf_sync_key');
+  if (!key) {
+    key = generateSyncKey();
+    localStorage.setItem('rf_sync_key', key);
+    const keyEl = document.getElementById('cfg-sync-key');
+    if(keyEl) keyEl.value = key;
+    await saveCloud();
+    return;
+  }
+  
+  const keyEl = document.getElementById('cfg-sync-key');
+  if(keyEl) keyEl.value = key;
+  
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Cargando desde la nube...`;
+  }
+  
+  try {
+    const response = await fetch(`${DB_BASE}${key}.json`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.S && data.CLIENTS) {
+        S = data.S;
+        CLIENTS = data.CLIENTS;
+        localStorage.setItem('rfust_v5', JSON.stringify(S));
+        localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+        
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube`;
+        }
+        rerenderAllData();
+      }
+    }
+  } catch (e) {
+    console.error("Cloud load failed:", e);
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span> 🔴 Modo local (Sin conexión)`;
+    }
+  }
+}
+
+function rerenderAllData() {
+  renderDynamicHeaderCbar();
+  updateClientBadges();
+  updateDot();
+  renderDash();
+  renderResources();
+  renderCalendar();
+  renderAsig();
+}
+
+function copySyncKey() {
+  const key = document.getElementById('cfg-sync-key').value;
+  navigator.clipboard.writeText(key).then(() => {
+    const msg = document.getElementById('sync-msg');
+    msg.innerHTML = '<div class="al al-g" style="padding:6px 10px; font-size:11px; margin-top:8px;">✅ ¡Clave copiada al portapapeles!</div>';
+    setTimeout(() => { msg.innerHTML = ''; }, 2000);
+  });
+}
+
+async function linkSyncKey() {
+  const keyInput = document.getElementById('cfg-link-key').value.trim().toUpperCase();
+  const msg = document.getElementById('sync-msg');
+  if (!keyInput.startsWith('RF-SYNC-')) {
+    msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">⚠️ Formato de clave inválido</div>';
+    return;
+  }
+  
+  msg.innerHTML = '<div class="al" style="padding:6px 10px; font-size:11px; margin-top:8px; color:var(--pri); background:var(--pril);">🔗 Conectando y descargando datos...</div>';
+  
+  try {
+    const response = await fetch(`${DB_BASE}${keyInput}.json`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.S && data.CLIENTS) {
+        localStorage.setItem('rf_sync_key', keyInput);
+        S = data.S;
+        CLIENTS = data.CLIENTS;
+        localStorage.setItem('rfust_v5', JSON.stringify(S));
+        localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+        
+        document.getElementById('cfg-sync-key').value = keyInput;
+        document.getElementById('cfg-link-key').value = '';
+        msg.innerHTML = '<div class="al al-g" style="padding:6px 10px; font-size:11px; margin-top:8px;">✅ ¡Computador vinculado y sincronizado con éxito!</div>';
+        setTimeout(() => { msg.innerHTML = ''; }, 3000);
+        
+        rerenderAllData();
+      } else {
+        msg.innerHTML = '<div class="al al-w" style="padding:6px 10px; font-size:11px; margin-top:8px;">⚠️ La clave no contiene datos o no existe</div>';
+      }
+    }
+  } catch (e) {
+    msg.innerHTML = '<div class="al al-e" style="padding:6px 10px; font-size:11px; margin-top:8px;">❌ Error de conexión al vincular</div>';
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3155,6 +3315,7 @@ function generateDefaultSantoTomasResources() {
 // INIT
 // ══════════════════════════════════════════════════════════
 load();
+loadCloud();
 // Enforce the custom subjects layout on boot
 S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
 // Pre-populate database with default Santo Tomás welcoming and closing resources if empty
