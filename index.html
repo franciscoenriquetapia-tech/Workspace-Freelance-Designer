@@ -2147,6 +2147,7 @@ async function loadCloud() {
       if (data && data.S && data.CLIENTS) {
         S = data.S;
         CLIENTS = data.CLIENTS;
+        if (!S.prioritySubjects) S.prioritySubjects = {};
         localStorage.setItem('rfust_v5', JSON.stringify(S));
         localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
         
