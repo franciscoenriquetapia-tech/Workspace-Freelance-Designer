@@ -874,11 +874,14 @@ select:focus, input:focus, textarea:focus {
 .asig-card.c-1 { background: linear-gradient(145deg, var(--sf) 60%, rgba(14, 165, 233, 0.04) 100%); --card-accent: var(--c1); }
 .asig-card.c-2 { background: linear-gradient(145deg, var(--sf) 60%, rgba(239, 68, 68, 0.04) 100%); --card-accent: var(--c2); }
 
-/* Glow outline and transform on hover */
+/* Glow outline on hover — NO transform to avoid stacking-context issues with dropdown */
 .asig-card:hover {
-  transform: translateY(-4px);
   box-shadow: 0 12px 30px rgba(79, 70, 229, 0.08);
   border-color: var(--card-accent, var(--pri));
+}
+/* When the three-dot menu is open, elevate the card above siblings */
+.asig-card.asig-card-menu-open {
+  z-index: 100;
 }
 .asig-card-header {
   display: flex;
@@ -898,9 +901,60 @@ select:focus, input:focus, textarea:focus {
 .asig-card-badge.b-st { background: var(--c0l); color: var(--c0); }
 .asig-card-badge.b-un { background: var(--c1l); color: var(--c1); }
 .asig-card-badge.b-in { background: var(--c2l); color: var(--c2); }
-/* Dropdown menu button hover */
+/* Priority badge */
+.asig-card-badge.badge-priority {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-weight: 700;
+}
+@media(prefers-color-scheme:dark) {
+  .asig-card-badge.badge-priority {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.25);
+  }
+}
+/* Dropdown menu */
+.asig-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 30px;
+  background: var(--sf);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  z-index: 9999;
+  min-width: 195px;
+  padding: 4px 0;
+  animation: asigDropFade 0.15s ease;
+}
+@keyframes asigDropFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.asig-dropdown button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 9px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tx);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--fn);
+  transition: background 0.15s ease;
+}
 .asig-dropdown button:hover {
   background: var(--prid) !important;
+}
+.asig-dropdown button.drop-danger {
+  color: var(--er);
 }
 
 .asig-card-dots {
@@ -2077,7 +2131,8 @@ const PAGE_SIZE=10;
 // Subjects Filter & Sort State
 let asigFilter = 'all'; // 'all' | 'in_progress' | 'completed' | 'no_resources' | 'priority'
 let asigSort = 'alpha'; // 'alpha' | 'progress_asc' | 'progress_desc' | 'resources_desc'
-let asigFacultyFilter = 'all'; // 'all' | 'ingenieria' | 'sociales' | 'naturales'
+let asigFacultyFilter = 'all'; // 'all' | faculty name string
+let _asigItems = []; // Global reference for rendered subject items (used by index-based onclick)
 
 
 function load(){
@@ -3379,43 +3434,42 @@ function renderAsig(){
 
   const totalAsig = subjsList.length;
 
-  // Render cards
+  // Store items globally so onclick handlers can reference by index (avoids escaping issues)
+  _asigItems = subjsList;
+
+  // Render cards — onclick uses numeric index into _asigItems
   const cardsHtml = subjsList.map((item, idx) => {
-    const priorityKey = `${item.cid}:${item.s}`;
-    // Encode subject name for safe inline onclick usage
-    const enc = encodeURIComponent(item.s);
-    
-    // Gold highlighted border left if high priority, else client default accent width
     const highlightStyle = item.isPriority 
       ? `border-left: 5px solid #f59e0b; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);` 
       : ``;
 
-    return `<div class="asig-card c-${item.cid}" style="position:relative; ${highlightStyle}">
-      <!-- Subtle watermark background icon inside card -->
+    return `<div class="asig-card c-${item.cid}" id="asig-card-${idx}" style="position:relative; ${highlightStyle}">
       <div class="asig-card-watermark" style="position:absolute; right:-15px; bottom:-15px; color:${item.c.colorVal}; opacity:0.04; pointer-events:none; transform:rotate(-15deg); z-index:1;"><i data-lucide="graduation-cap" style="width:100px; height:100px; stroke-width:1;"></i></div>
       <div class="asig-card-header" style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
-        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
-          <span class="asig-card-badge b-${item.c.short.toLowerCase()}" style="white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0;">
+          <span class="asig-card-badge b-${item.c.short.toLowerCase()}">
             <i data-lucide="graduation-cap" style="width:12px;height:12px;"></i> ${item.c.name}
           </span>
-          ${item.isPriority ? `
-            <span class="asig-card-badge" style="background:var(--wal); color:#d97706; border:1px solid rgba(245, 158, 11, 0.3); font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">
-              <i data-lucide="star" style="width:12px;height:12px;fill:#d97706;"></i> Alta Prioridad
-            </span>
-          ` : ''}
+          ${item.isPriority ? `<span class="asig-card-badge badge-priority"><i data-lucide="star" style="width:11px;height:11px;fill:currentColor;"></i> Alta Prioridad</span>` : ''}
         </div>
-        <div style="position:relative; z-index:99;">
+        <div style="position:relative; z-index:99; flex-shrink:0;">
           <button class="asig-card-dots" onclick="toggleAsigMenu(event, ${idx})" title="Opciones">
             <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
           </button>
-          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:28px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.2); z-index:9999; min-width:185px; padding:4px 0;">
-            <button onclick="togglePriority(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);">
-              <i data-lucide="star" style="width:13px;height:13px;color:#f59e0b; ${item.isPriority ? 'fill:#f59e0b;' : ''}"></i> 
-              ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta'}
+          <div class="asig-dropdown" id="asig-drop-${idx}">
+            <button onclick="_asigAction(event,'priority',${idx})">
+              <i data-lucide="star" style="width:14px;height:14px;color:#f59e0b;${item.isPriority ? 'fill:#f59e0b;' : ''}"></i>
+              ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta ⭐'}
             </button>
-            <button onclick="editSubj(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="edit-3" style="width:13px;height:13px;color:var(--pri);"></i> Editar Asignatura</button>
-            <button onclick="duplicateSubj(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
-            <button onclick="deleteSubj(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
+            <button onclick="_asigAction(event,'edit',${idx})">
+              <i data-lucide="edit-3" style="width:14px;height:14px;color:var(--pri);"></i> Editar Asignatura
+            </button>
+            <button onclick="_asigAction(event,'duplicate',${idx})">
+              <i data-lucide="copy" style="width:14px;height:14px;color:var(--t3);"></i> Duplicar
+            </button>
+            <button class="drop-danger" onclick="_asigAction(event,'delete',${idx})">
+              <i data-lucide="trash-2" style="width:14px;height:14px;color:var(--er);"></i> Eliminar
+            </button>
           </div>
         </div>
       </div>
@@ -3434,7 +3488,7 @@ function renderAsig(){
       </div>
       <div class="asig-card-footer" style="position:relative; z-index:2;">
         <span class="asig-res-count"><i data-lucide="folder" style="width:14px;height:14px;color:var(--t3);"></i> ${item.resourcesCount} Recursos</span>
-        <a class="asig-det-btn" onclick="filterSubCli(decodeURIComponent('${enc}'), ${item.cid})" style="color:${item.c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        <a class="asig-det-btn" onclick="_asigAction(event,'details',${idx})" style="color:${item.c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
       </div>
     </div>`;
   }).join('');
@@ -3565,92 +3619,65 @@ function clearAsigFilters() {
   renderAsig();
 }
 
-// Toggle priority tag dynamically and save
-function togglePriority(event, subjName, cid) {
+// ─── Unified action dispatcher: reads subject data from _asigItems by index ───
+function _asigAction(event, action, idx) {
   event.stopPropagation();
-  const priorityKey = `${cid}:${subjName}`;
-  if (S.prioritySubjects[priorityKey]) {
-    delete S.prioritySubjects[priorityKey];
+  const item = _asigItems[idx];
+  if (!item) return;
+  const subjName = item.s;
+  const cid = item.cid;
+
+  // Close dropdown first
+  _closeAllAsigDropdowns();
+
+  switch (action) {
+    case 'priority':
+      _doPriority(subjName, cid);
+      break;
+    case 'edit':
+      _doEdit(subjName, cid);
+      break;
+    case 'duplicate':
+      _doDuplicate(subjName, cid);
+      break;
+    case 'delete':
+      _doDelete(subjName, cid);
+      break;
+    case 'details':
+      filterSubCli(subjName, cid);
+      break;
+  }
+}
+
+function _doPriority(subjName, cid) {
+  const key = `${cid}:${subjName}`;
+  if (S.prioritySubjects[key]) {
+    delete S.prioritySubjects[key];
   } else {
-    S.prioritySubjects[priorityKey] = true;
+    S.prioritySubjects[key] = true;
   }
   save();
   renderAsig();
 }
 
-function filterSubCli(s,cid){
-  if(curClient==='all')setClient(cid);
-  go('recursos');
-  setTimeout(()=>{
-    const sel = document.getElementById('fs');
-    if(sel){ sel.value=s; renderResources(); }
-  },60);
-}
-
-function toggleAsigMenu(event, idx) {
-  event.stopPropagation();
-  // Close all other dropdowns
-  document.querySelectorAll('.asig-dropdown').forEach(d => {
-    if (d.id !== `asig-drop-${idx}`) d.style.display = 'none';
-  });
-  const el = document.getElementById(`asig-drop-${idx}`);
-  if (el) {
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  }
-}
-
-function duplicateSubj(event, subjName, cid) {
-  event.stopPropagation();
-  const newName = prompt("Nombre de la asignatura duplicada:", subjName + " (Copia)");
-  if (!newName) return;
-  const cleanedName = newName.trim();
-  if (!cleanedName) return;
-  if (S.subjects[cid].includes(cleanedName)) {
-    alert("Ya existe una asignatura con ese nombre.");
-    return;
-  }
-  
-  // Prompt for Faculty Selection
-  const facultyChoice = prompt(
-    "Selecciona la Facultad para esta asignatura:\n" +
-    "1. Facultad de Ingeniería y Negocios\n" +
-    "2. Ciencias Sociales y Educación\n" +
-    "3. Recursos Naturales y Medicina Veterinaria\n" +
-    "Ingresa 1, 2 o 3 (o presione Aceptar para 'Facultad de Ingeniería y Negocios' por defecto):"
-  );
-  
-  let faculty = "Facultad de Ingeniería y Negocios";
-  if (facultyChoice === "2") faculty = "Ciencias Sociales y Educación";
-  else if (facultyChoice === "3") faculty = "Recursos Naturales y Medicina Veterinaria";
-
-  S.subjects[cid].push(cleanedName);
-  
-  const facultyKey = `${cid}:${cleanedName}`;
-  S.subjectFaculties[facultyKey] = faculty;
-
-  save();
-  renderAsig();
-}
-
-function editSubj(event, oldSubjName, cid) {
-  event.stopPropagation();
+function _doEdit(oldSubjName, cid) {
   const newName = prompt("Editar nombre de la asignatura:", oldSubjName);
   if (!newName) return;
   const cleanedName = newName.trim();
   if (!cleanedName) return;
-  
+
   if (cleanedName !== oldSubjName && S.subjects[cid].includes(cleanedName)) {
     alert("Ya existe una asignatura con ese nombre.");
     return;
   }
-  
-  // Prompt for Faculty Selection
+
+  // Faculty Selection
   const oldKey = `${cid}:${oldSubjName}`;
   const currentFaculty = S.subjectFaculties[oldKey] || "Facultad de Ingeniería y Negocios";
   let promptNum = "1";
   if (currentFaculty === "Ciencias Sociales y Educación") promptNum = "2";
   else if (currentFaculty === "Recursos Naturales y Medicina Veterinaria") promptNum = "3";
-  
+
   const facultyChoice = prompt(
     "Editar Facultad de la asignatura:\n" +
     "1. Facultad de Ingeniería y Negocios\n" +
@@ -3659,64 +3686,121 @@ function editSubj(event, oldSubjName, cid) {
     "Ingresa 1, 2 o 3 (Actual: " + promptNum + "):",
     promptNum
   );
-  
+
   let faculty = "Facultad de Ingeniería y Negocios";
   if (facultyChoice === "2") faculty = "Ciencias Sociales y Educación";
   else if (facultyChoice === "3") faculty = "Recursos Naturales y Medicina Veterinaria";
-  
-  // 1. Rename inside subjects array if changed
+
   if (cleanedName !== oldSubjName) {
     S.subjects[cid] = S.subjects[cid].map(s => s === oldSubjName ? cleanedName : s);
-    
-    // 2. Rename inside resources
     S.resources.forEach(r => {
-      if (r.clientId === cid && r.subject === oldSubjName) {
-        r.subject = cleanedName;
-      }
+      if (r.clientId === cid && r.subject === oldSubjName) r.subject = cleanedName;
     });
-    
-    // 3. Rename inside prioritySubjects keys
     const oldPKey = `${cid}:${oldSubjName}`;
     const newPKey = `${cid}:${cleanedName}`;
     if (S.prioritySubjects[oldPKey]) {
       S.prioritySubjects[newPKey] = true;
       delete S.prioritySubjects[oldPKey];
     }
-    
-    // 4. Update faculty key
     const newKey = `${cid}:${cleanedName}`;
     S.subjectFaculties[newKey] = faculty;
     delete S.subjectFaculties[oldKey];
   } else {
-    // Just update the faculty for the existing name
     S.subjectFaculties[oldKey] = faculty;
   }
-  
+
   save();
   renderAsig();
 }
 
-function deleteSubj(event, subjName, cid) {
-  event.stopPropagation();
+function _doDuplicate(subjName, cid) {
+  const newName = prompt("Nombre de la asignatura duplicada:", subjName + " (Copia)");
+  if (!newName) return;
+  const cleanedName = newName.trim();
+  if (!cleanedName) return;
+  if (S.subjects[cid].includes(cleanedName)) {
+    alert("Ya existe una asignatura con ese nombre.");
+    return;
+  }
+
+  const facultyChoice = prompt(
+    "Selecciona la Facultad para esta asignatura:\n" +
+    "1. Facultad de Ingeniería y Negocios\n" +
+    "2. Ciencias Sociales y Educación\n" +
+    "3. Recursos Naturales y Medicina Veterinaria\n" +
+    "Ingresa 1, 2 o 3 (por defecto: 1):",
+    "1"
+  );
+
+  let faculty = "Facultad de Ingeniería y Negocios";
+  if (facultyChoice === "2") faculty = "Ciencias Sociales y Educación";
+  else if (facultyChoice === "3") faculty = "Recursos Naturales y Medicina Veterinaria";
+
+  S.subjects[cid].push(cleanedName);
+  S.subjectFaculties[`${cid}:${cleanedName}`] = faculty;
+
+  save();
+  renderAsig();
+}
+
+function _doDelete(subjName, cid) {
   const sr = S.resources.filter(r => r.subject === subjName && r.clientId === cid);
   let msg = `¿Seguro que deseas eliminar la asignatura "${subjName}"?`;
   if (sr.length > 0) {
     msg += `\nEsto también eliminará permanentemente los ${sr.length} recursos asociados a ella.`;
   }
   if (!confirm(msg)) return;
-  
-  // Remove subject from the list
+
   S.subjects[cid] = S.subjects[cid].filter(s => s !== subjName);
-  // Remove resources associated with it
   S.resources = S.resources.filter(r => !(r.subject === subjName && r.clientId === cid));
-  
+  // Clean up priority and faculty keys
+  const key = `${cid}:${subjName}`;
+  delete S.prioritySubjects[key];
+  delete S.subjectFaculties[key];
+
   save();
   renderAsig();
 }
 
-// Global click handler to close dropdowns when clicking outside
-document.addEventListener('click', () => {
+function filterSubCli(s, cid) {
+  if (curClient === 'all') setClient(cid);
+  go('recursos');
+  setTimeout(() => {
+    const sel = document.getElementById('fs');
+    if (sel) { sel.value = s; renderResources(); }
+  }, 60);
+}
+
+// ─── Dropdown menu toggle with z-index management ───
+function toggleAsigMenu(event, idx) {
+  event.stopPropagation();
+  // Close all other dropdowns and remove elevation from all cards
+  _closeAllAsigDropdowns();
+
+  const el = document.getElementById(`asig-drop-${idx}`);
+  const card = document.getElementById(`asig-card-${idx}`);
+  if (el) {
+    const isShowing = el.style.display === 'block';
+    if (isShowing) {
+      el.style.display = 'none';
+      if (card) card.classList.remove('asig-card-menu-open');
+    } else {
+      el.style.display = 'block';
+      if (card) card.classList.add('asig-card-menu-open');
+    }
+  }
+}
+
+function _closeAllAsigDropdowns() {
   document.querySelectorAll('.asig-dropdown').forEach(d => d.style.display = 'none');
+  document.querySelectorAll('.asig-card-menu-open').forEach(c => c.classList.remove('asig-card-menu-open'));
+}
+
+// Global click handler to close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  // Don't close if clicking inside a dropdown
+  if (e.target.closest && e.target.closest('.asig-dropdown')) return;
+  _closeAllAsigDropdowns();
 });
 
 
