@@ -851,7 +851,7 @@ select:focus, input:focus, textarea:focus {
   min-height: 200px;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
 }
 /* Visual left accent strip for premium touch */
@@ -3398,11 +3398,11 @@ function renderAsig(){
             </span>
           ` : ''}
         </div>
-        <div style="position:relative;">
+        <div style="position:relative; z-index:99;">
           <button class="asig-card-dots" onclick="toggleAsigMenu(event, ${idx})">
             <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
           </button>
-          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:24px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.15); z-index:50; width:170px; padding:4px 0;">
+          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:24px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.2); z-index:9999; width:170px; padding:4px 0;">
             <button onclick="togglePriority(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);">
               <i data-lucide="star" style="width:13px;height:13px;color:#f59e0b; ${item.isPriority ? 'fill:#f59e0b;' : ''}"></i> 
               ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta'}
