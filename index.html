@@ -870,9 +870,9 @@ select:focus, input:focus, textarea:focus {
   width: 8px;
 }
 /* Soft gradient backgrounds matching client colors */
-.asig-card.c-0 { background: linear-gradient(145deg, #ffffff 60%, rgba(79, 70, 229, 0.04) 100%); --card-accent: var(--c0); }
-.asig-card.c-1 { background: linear-gradient(145deg, #ffffff 60%, rgba(14, 165, 233, 0.04) 100%); --card-accent: var(--c1); }
-.asig-card.c-2 { background: linear-gradient(145deg, #ffffff 60%, rgba(239, 68, 68, 0.04) 100%); --card-accent: var(--c2); }
+.asig-card.c-0 { background: linear-gradient(145deg, var(--sf) 60%, rgba(79, 70, 229, 0.04) 100%); --card-accent: var(--c0); }
+.asig-card.c-1 { background: linear-gradient(145deg, var(--sf) 60%, rgba(14, 165, 233, 0.04) 100%); --card-accent: var(--c1); }
+.asig-card.c-2 { background: linear-gradient(145deg, var(--sf) 60%, rgba(239, 68, 68, 0.04) 100%); --card-accent: var(--c2); }
 
 /* Glow outline and transform on hover */
 .asig-card:hover {
@@ -895,9 +895,13 @@ select:focus, input:focus, textarea:focus {
   align-items: center;
   gap: 4px;
 }
-.asig-card-badge.b-ust { background: var(--c0l); color: var(--c0); }
-.asig-card-badge.b-uni { background: var(--c1l); color: var(--c1); }
-.asig-card-badge.b-inacap { background: var(--c2l); color: var(--c2); }
+.asig-card-badge.b-st { background: var(--c0l); color: var(--c0); }
+.asig-card-badge.b-un { background: var(--c1l); color: var(--c1); }
+.asig-card-badge.b-in { background: var(--c2l); color: var(--c2); }
+/* Dropdown menu button hover */
+.asig-dropdown button:hover {
+  background: var(--prid) !important;
+}
 
 .asig-card-dots {
   color: var(--t3);
@@ -3378,6 +3382,8 @@ function renderAsig(){
   // Render cards
   const cardsHtml = subjsList.map((item, idx) => {
     const priorityKey = `${item.cid}:${item.s}`;
+    // Encode subject name for safe inline onclick usage
+    const enc = encodeURIComponent(item.s);
     
     // Gold highlighted border left if high priority, else client default accent width
     const highlightStyle = item.isPriority 
@@ -3399,17 +3405,17 @@ function renderAsig(){
           ` : ''}
         </div>
         <div style="position:relative; z-index:99;">
-          <button class="asig-card-dots" onclick="toggleAsigMenu(event, ${idx})">
+          <button class="asig-card-dots" onclick="toggleAsigMenu(event, ${idx})" title="Opciones">
             <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
           </button>
-          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:24px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.2); z-index:9999; width:170px; padding:4px 0;">
-            <button onclick="togglePriority(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);">
+          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:28px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.2); z-index:9999; min-width:185px; padding:4px 0;">
+            <button onclick="togglePriority(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);">
               <i data-lucide="star" style="width:13px;height:13px;color:#f59e0b; ${item.isPriority ? 'fill:#f59e0b;' : ''}"></i> 
               ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta'}
             </button>
-            <button onclick="editSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="edit-3" style="width:13px;height:13px;color:var(--pri);"></i> Editar Asignatura</button>
-            <button onclick="duplicateSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
-            <button onclick="deleteSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
+            <button onclick="editSubj(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="edit-3" style="width:13px;height:13px;color:var(--pri);"></i> Editar Asignatura</button>
+            <button onclick="duplicateSubj(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
+            <button onclick="deleteSubj(event, decodeURIComponent('${enc}'), ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
           </div>
         </div>
       </div>
@@ -3428,7 +3434,7 @@ function renderAsig(){
       </div>
       <div class="asig-card-footer" style="position:relative; z-index:2;">
         <span class="asig-res-count"><i data-lucide="folder" style="width:14px;height:14px;color:var(--t3);"></i> ${item.resourcesCount} Recursos</span>
-        <a class="asig-det-btn" onclick="filterSubCli('${item.s}', ${item.cid})" style="color:${item.c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        <a class="asig-det-btn" onclick="filterSubCli(decodeURIComponent('${enc}'), ${item.cid})" style="color:${item.c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
       </div>
     </div>`;
   }).join('');
