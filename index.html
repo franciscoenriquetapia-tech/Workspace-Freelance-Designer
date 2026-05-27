@@ -3774,17 +3774,13 @@ function filterSubCli(s, cid) {
 // ─── Dropdown menu toggle with z-index management ───
 function toggleAsigMenu(event, idx) {
   event.stopPropagation();
-  // Close all other dropdowns and remove elevation from all cards
-  _closeAllAsigDropdowns();
-
   const el = document.getElementById(`asig-drop-${idx}`);
   const card = document.getElementById(`asig-card-${idx}`);
   if (el) {
     const isShowing = el.style.display === 'block';
-    if (isShowing) {
-      el.style.display = 'none';
-      if (card) card.classList.remove('asig-card-menu-open');
-    } else {
+    // Close all other dropdowns and remove elevation from all cards
+    _closeAllAsigDropdowns();
+    if (!isShowing) {
       el.style.display = 'block';
       if (card) card.classList.add('asig-card-menu-open');
     }
@@ -3798,8 +3794,8 @@ function _closeAllAsigDropdowns() {
 
 // Global click handler to close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
-  // Don't close if clicking inside a dropdown
-  if (e.target.closest && e.target.closest('.asig-dropdown')) return;
+  // Don't close if clicking inside a dropdown or the 3-dot trigger button
+  if (e.target.closest && (e.target.closest('.asig-dropdown') || e.target.closest('.asig-card-dots'))) return;
   _closeAllAsigDropdowns();
 });
 
