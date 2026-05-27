@@ -1628,6 +1628,10 @@ select:focus, input:focus, textarea:focus {
                 <option value="en_progreso">En progreso</option>
               </select>
             </div>
+            <div class="fg" style="display:flex; align-items:center; gap:8px; margin-top: 14px;">
+              <input type="checkbox" id="f-priority" style="width:auto; cursor:pointer;">
+              <label for="f-priority" style="font-size:12px; font-weight:700; cursor:pointer; color:var(--tx); display:flex; align-items:center; gap:4px;"><i data-lucide="star" style="width:14px;height:14px;color:#f59e0b;fill:#f59e0b;"></i> Asignatura de Alta Prioridad</label>
+            </div>
             <div class="fg full"><label class="fl">Notas / indicaciones</label><textarea id="f-notes" rows="2" placeholder="Indicaciones especiales..."></textarea></div>
           </div>
           <div style="display:flex;gap:8px;margin-top:16px">
@@ -1850,6 +1854,10 @@ select:focus, input:focus, textarea:focus {
           <option value="en_progreso">En progreso</option>
           <option value="completado">Completado</option>
         </select>
+      </div>
+      <div class="fg" style="display:flex; align-items:center; gap:8px; margin-top: 14px;">
+        <input type="checkbox" id="e-priority" style="width:auto; cursor:pointer;">
+        <label for="e-priority" style="font-size:12px; font-weight:700; cursor:pointer; color:var(--tx); display:flex; align-items:center; gap:4px;"><i data-lucide="star" style="width:14px;height:14px;color:#f59e0b;fill:#f59e0b;"></i> Asignatura de Alta Prioridad</label>
       </div>
       <div class="fg full"><label class="fl">Notas</label><textarea id="e-notes" rows="2"></textarea></div>
     </div>
@@ -2876,6 +2884,11 @@ function openEdit(id){
   document.getElementById('e-st').value=r.status;
   document.getElementById('e-notes').value=r.notes||'';
   document.getElementById('e-msg').innerHTML='';
+  
+  // Set high priority checkbox dynamically
+  const pKey = `${r.clientId}:${r.subject}`;
+  document.getElementById('e-priority').checked = !!S.prioritySubjects[pKey];
+
   document.getElementById('modal-edit').classList.add('on');
   lucide.createIcons();
 }
@@ -3038,6 +3051,15 @@ function saveEdit(){
   r.assignedDate=document.getElementById('e-ass').value; r.dueDate=document.getElementById('e-due').value;
   r.assignedBy=document.getElementById('e-di').value.trim(); r.status=document.getElementById('e-st').value;
   r.notes=document.getElementById('e-notes').value.trim();
+  
+  // Save manually set priority state
+  const pKey = `${r.clientId}:${r.subject}`;
+  if (document.getElementById('e-priority').checked) {
+    S.prioritySubjects[pKey] = true;
+  } else {
+    delete S.prioritySubjects[pKey];
+  }
+
   save(); updateDot();
   checkAndNotifyResource(r);
   document.getElementById('e-msg').innerHTML='<div class="al al-g">✅ Cambios guardados</div>';
@@ -3114,6 +3136,15 @@ function saveResource(){
   if(!title||!ass||!due){msg.innerHTML='<div class="al al-w">⚠️ Completa los campos.</div>';return}
   const newRes = {id:genId(),title,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:due,assignedBy:di,status:st,notes};
   S.resources.push(newRes);
+  
+  // Save manually set priority state on creation
+  const pKey = `${cid}:${subj}`;
+  if (document.getElementById('f-priority').checked) {
+    S.prioritySubjects[pKey] = true;
+  } else {
+    delete S.prioritySubjects[pKey];
+  }
+
   save(); updateDot();
   checkAndNotifyResource(newRes);
   msg.innerHTML='<div class="al al-g">✅ Recurso guardado.</div>';
@@ -3122,6 +3153,7 @@ function saveResource(){
 function clearForm(){
   ['f-title','f-di','f-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-ass').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-priority').checked = false;
   fAutoDue(); document.getElementById('f-msg').innerHTML='';
   renderFormPricing(fCurCli);
 }
@@ -3366,6 +3398,7 @@ function renderAsig(){
               <i data-lucide="star" style="width:13px;height:13px;color:#f59e0b; ${item.isPriority ? 'fill:#f59e0b;' : ''}"></i> 
               ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta'}
             </button>
+            <button onclick="editSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="edit-3" style="width:13px;height:13px;color:var(--pri);"></i> Editar Nombre</button>
             <button onclick="duplicateSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
             <button onclick="deleteSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
           </div>
@@ -3508,6 +3541,100 @@ function togglePriority(event, subjName, cid) {
   save();
   renderAsig();
 }
+
+function filterSubCli(s,cid){
+  if(curClient==='all')setClient(cid);
+  go('recursos');
+  setTimeout(()=>{
+    const sel = document.getElementById('fs');
+    if(sel){ sel.value=s; renderResources(); }
+  },60);
+}
+
+function toggleAsigMenu(event, idx) {
+  event.stopPropagation();
+  // Close all other dropdowns
+  document.querySelectorAll('.asig-dropdown').forEach(d => {
+    if (d.id !== `asig-drop-${idx}`) d.style.display = 'none';
+  });
+  const el = document.getElementById(`asig-drop-${idx}`);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function duplicateSubj(event, subjName, cid) {
+  event.stopPropagation();
+  const newName = prompt("Nombre de la asignatura duplicada:", subjName + " (Copia)");
+  if (!newName) return;
+  const cleanedName = newName.trim();
+  if (!cleanedName) return;
+  if (S.subjects[cid].includes(cleanedName)) {
+    alert("Ya existe una asignatura con ese nombre.");
+    return;
+  }
+  S.subjects[cid].push(cleanedName);
+  save();
+  renderAsig();
+}
+
+function editSubj(event, oldSubjName, cid) {
+  event.stopPropagation();
+  const newName = prompt("Editar nombre de la asignatura:", oldSubjName);
+  if (!newName) return;
+  const cleanedName = newName.trim();
+  if (!cleanedName || cleanedName === oldSubjName) return;
+  
+  if (S.subjects[cid].includes(cleanedName)) {
+    alert("Ya existe una asignatura con ese nombre.");
+    return;
+  }
+  
+  // 1. Rename inside subjects array
+  S.subjects[cid] = S.subjects[cid].map(s => s === oldSubjName ? cleanedName : s);
+  
+  // 2. Rename inside resources
+  S.resources.forEach(r => {
+    if (r.clientId === cid && r.subject === oldSubjName) {
+      r.subject = cleanedName;
+    }
+  });
+  
+  // 3. Rename inside prioritySubjects keys
+  const oldKey = `${cid}:${oldSubjName}`;
+  const newKey = `${cid}:${cleanedName}`;
+  if (S.prioritySubjects[oldKey]) {
+    S.prioritySubjects[newKey] = true;
+    delete S.prioritySubjects[oldKey];
+  }
+  
+  save();
+  renderAsig();
+}
+
+function deleteSubj(event, subjName, cid) {
+  event.stopPropagation();
+  const sr = S.resources.filter(r => r.subject === subjName && r.clientId === cid);
+  let msg = `¿Seguro que deseas eliminar la asignatura "${subjName}"?`;
+  if (sr.length > 0) {
+    msg += `\nEsto también eliminará permanentemente los ${sr.length} recursos asociados a ella.`;
+  }
+  if (!confirm(msg)) return;
+  
+  // Remove subject from the list
+  S.subjects[cid] = S.subjects[cid].filter(s => s !== subjName);
+  // Remove resources associated with it
+  S.resources = S.resources.filter(r => !(r.subject === subjName && r.clientId === cid));
+  
+  save();
+  renderAsig();
+}
+
+// Global click handler to close dropdowns when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.asig-dropdown').forEach(d => d.style.display = 'none');
+});
+
 
 
 
