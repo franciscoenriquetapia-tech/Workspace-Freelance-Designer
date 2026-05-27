@@ -1934,7 +1934,7 @@ select:focus, input:focus, textarea:focus {
       </div>
     </div>
     
-    <div style="display:flex; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--br); padding-top:14px; gap:8px;">
+    <div style="display:flex; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--br); padding-top:14px; gap:8px;" id="v-actions">
       <button class="btn btn-p" onclick="closeViewRes()">Entendido</button>
     </div>
   </div>
@@ -2971,12 +2971,52 @@ function openViewRes(id) {
   document.getElementById('v-di').textContent = r.assignedBy || '–';
   document.getElementById('v-notes').textContent = r.notes || 'Sin indicaciones especiales registradas.';
   
+  // Dynamic action buttons
+  const actionsEl = document.getElementById('v-actions');
+  if (actionsEl) {
+    if (r.status !== 'completado') {
+      actionsEl.innerHTML = `
+        <button class="btn btn-sec" style="background:#22c55e; border-color:#22c55e; color:#ffffff; font-weight:700; height:36px; padding:0 12px; display:inline-flex; align-items:center; gap:6px; font-size:12.5px;" onclick="markResAsCompleted('${r.id}')"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Completar Recurso</button>
+        <button class="btn btn-p" onclick="closeViewRes()" style="height:36px;">Entendido</button>
+      `;
+    } else {
+      actionsEl.innerHTML = `
+        <button class="btn btn-sec" style="color:var(--er); border-color:rgba(239,68,68,0.2); font-weight:700; height:36px; padding:0 12px; display:inline-flex; align-items:center; gap:6px; font-size:12.5px;" onclick="reopenRes('${r.id}')"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Reabrir Recurso</button>
+        <button class="btn btn-p" onclick="closeViewRes()" style="height:36px;">Entendido</button>
+      `;
+    }
+  }
+  
   document.getElementById('modal-view-res').classList.add('on');
   lucide.createIcons();
 }
 
 function closeViewRes() {
   document.getElementById('modal-view-res').classList.remove('on');
+}
+
+function markResAsCompleted(id) {
+  const r = S.resources.find(item => item.id === id);
+  if (!r) return;
+  r.status = 'completado';
+  save();
+  updateDot();
+  closeViewRes();
+  renderCalendar();
+  renderDash();
+  renderResources();
+}
+
+function reopenRes(id) {
+  const r = S.resources.find(item => item.id === id);
+  if (!r) return;
+  r.status = 'pendiente';
+  save();
+  updateDot();
+  closeViewRes();
+  renderCalendar();
+  renderDash();
+  renderResources();
 }
 function eAutoDue(){const v=document.getElementById('e-ass').value; if(v){const d=new Date(v); d.setDate(d.getDate()+7); document.getElementById('e-due').value=d.toISOString().split('T')[0]}}
 function saveEdit(){
