@@ -2061,7 +2061,7 @@ const DEF_SUBJECTS=[
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let S={resources:[],subjects:CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]]),prioritySubjects:{},cfg:{urgDays:2,highDays:4}};
+let S={resources:[],subjects:CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]]),prioritySubjects:{},subjectFaculties:{},cfg:{urgDays:2,highDays:4}};
 let curClient='all'; // 'all' | 0 | 1 | 2
 let calOffset=0;
 let editId=null;
@@ -2073,6 +2073,7 @@ const PAGE_SIZE=10;
 // Subjects Filter & Sort State
 let asigFilter = 'all'; // 'all' | 'in_progress' | 'completed' | 'no_resources' | 'priority'
 let asigSort = 'alpha'; // 'alpha' | 'progress_asc' | 'progress_desc' | 'resources_desc'
+let asigFacultyFilter = 'all'; // 'all' | 'ingenieria' | 'sociales' | 'naturales'
 
 
 function load(){
@@ -2081,6 +2082,7 @@ function load(){
   const d=localStorage.getItem('rfust_v5');
   if(d){try{const p=JSON.parse(d);S={...S,...p};
     if(!S.prioritySubjects) S.prioritySubjects = {};
+    if(!S.subjectFaculties) S.subjectFaculties = {};
     if(!S.subjects||S.subjects.length<CLIENTS.length){
       S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
     }
@@ -2156,6 +2158,7 @@ async function loadCloud() {
         S = data.S;
         CLIENTS = data.CLIENTS;
         if (!S.prioritySubjects) S.prioritySubjects = {};
+        if (!S.subjectFaculties) S.subjectFaculties = {};
         localStorage.setItem('rfust_v5', JSON.stringify(S));
         localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
         
@@ -3318,7 +3321,7 @@ function renderAsig(){
   
   const activeClientName = curClient === 'all' ? 'DesignOps Suite' : CLIENTS.find(c => c.id === curClient).name;
 
-  // 1. Process data for each subject to enrich with metadata (progress, resources, priority)
+  // 1. Process data for each subject to enrich with metadata (progress, resources, priority, faculty)
   subjsList = subjsList.map((item, idx) => {
     const c = CLIENTS.find(cl => cl.id === item.cid);
     const sr = S.resources.filter(r => r.subject === item.s && r.clientId === item.cid);
@@ -3328,6 +3331,9 @@ function renderAsig(){
     // Check priority key: "clientId:subjectName"
     const priorityKey = `${item.cid}:${item.s}`;
     const isPriority = !!S.prioritySubjects[priorityKey];
+    
+    // Map Faculty (default to "Facultad de Ingeniería y Negocios" if not configured)
+    const faculty = S.subjectFaculties[priorityKey] || "Facultad de Ingeniería y Negocios";
 
     return {
       ...item,
@@ -3335,11 +3341,12 @@ function renderAsig(){
       sr,
       pct,
       isPriority,
+      faculty,
       resourcesCount: sr.length
     };
   });
 
-  // 2. Filter subjects list
+  // 2. Filter subjects list by progress / priority
   if (asigFilter === 'in_progress') {
     subjsList = subjsList.filter(item => item.pct < 100 && item.resourcesCount > 0);
   } else if (asigFilter === 'completed') {
@@ -3348,6 +3355,11 @@ function renderAsig(){
     subjsList = subjsList.filter(item => item.resourcesCount === 0);
   } else if (asigFilter === 'priority') {
     subjsList = subjsList.filter(item => item.isPriority);
+  }
+
+  // 2.5 Filter subjects list by Faculty
+  if (asigFacultyFilter !== 'all') {
+    subjsList = subjsList.filter(item => item.faculty === asigFacultyFilter);
   }
 
   // 3. Sort subjects list
@@ -3365,26 +3377,23 @@ function renderAsig(){
 
   // Render cards
   const cardsHtml = subjsList.map((item, idx) => {
-    // Generate code and semester
-    const letterCode = item.s.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
-    const code = `Código: ${letterCode}${100 + idx} • Semestre ${(idx % 4) + 1}`;
     const priorityKey = `${item.cid}:${item.s}`;
     
     // Gold highlighted border left if high priority, else client default accent width
     const highlightStyle = item.isPriority 
-      ? `border-left: 5px solid #f59e0b; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.08);` 
+      ? `border-left: 5px solid #f59e0b; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);` 
       : ``;
 
     return `<div class="asig-card c-${item.cid}" style="position:relative; ${highlightStyle}">
       <!-- Subtle watermark background icon inside card -->
       <div class="asig-card-watermark" style="position:absolute; right:-15px; bottom:-15px; color:${item.c.colorVal}; opacity:0.04; pointer-events:none; transform:rotate(-15deg); z-index:1;"><i data-lucide="graduation-cap" style="width:100px; height:100px; stroke-width:1;"></i></div>
-      <div class="asig-card-header" style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; width:100%;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="asig-card-badge b-${item.c.short.toLowerCase()}">
+      <div class="asig-card-header" style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+          <span class="asig-card-badge b-${item.c.short.toLowerCase()}" style="white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">
             <i data-lucide="graduation-cap" style="width:12px;height:12px;"></i> ${item.c.name}
           </span>
           ${item.isPriority ? `
-            <span class="asig-card-badge" style="background:var(--wal); color:#d97706; border:1px solid rgba(245, 158, 11, 0.3); font-weight:700;">
+            <span class="asig-card-badge" style="background:var(--wal); color:#d97706; border:1px solid rgba(245, 158, 11, 0.3); font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">
               <i data-lucide="star" style="width:12px;height:12px;fill:#d97706;"></i> Alta Prioridad
             </span>
           ` : ''}
@@ -3398,15 +3407,15 @@ function renderAsig(){
               <i data-lucide="star" style="width:13px;height:13px;color:#f59e0b; ${item.isPriority ? 'fill:#f59e0b;' : ''}"></i> 
               ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta'}
             </button>
-            <button onclick="editSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="edit-3" style="width:13px;height:13px;color:var(--pri);"></i> Editar Nombre</button>
+            <button onclick="editSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="edit-3" style="width:13px;height:13px;color:var(--pri);"></i> Editar Asignatura</button>
             <button onclick="duplicateSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
             <button onclick="deleteSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
           </div>
         </div>
       </div>
       <div style="position:relative; z-index:2; margin-top: 12px;">
-        <h4 class="asig-card-name">${item.s}</h4>
-        <div class="asig-card-code">${code}</div>
+        <h4 class="asig-card-name" style="line-height:1.3; font-size:15.5px; font-weight:700;">${item.s}</h4>
+        <div class="asig-card-code" style="font-size:11.5px; font-weight:600; color:var(--t2); display:flex; align-items:center; gap:6px; margin-top:4px; margin-bottom:14px;"><i data-lucide="building-2" style="width:13px;height:13px;color:var(--t3);"></i> ${item.faculty}</div>
       </div>
       <div class="asig-progress-wrap" style="position:relative; z-index:2;">
         <div class="asig-progress-lbl">
@@ -3426,11 +3435,18 @@ function renderAsig(){
 
   // Dropdowns selection filters UI
   const filterOptions = [
-    { value: 'all', label: 'Todas las asignaturas' },
+    { value: 'all', label: 'Todos los estados' },
     { value: 'priority', label: 'Alta Prioridad ⭐' },
     { value: 'in_progress', label: 'En Progreso' },
     { value: 'completed', label: 'Completadas' },
     { value: 'no_resources', label: 'Sin Recursos' }
+  ];
+
+  const facultyOptions = [
+    { value: 'all', label: 'Todas las Facultades' },
+    { value: 'Facultad de Ingeniería y Negocios', label: 'F. Ingeniería y Negocios' },
+    { value: 'Ciencias Sociales y Educación', label: 'F. Ciencias Sociales y Ed.' },
+    { value: 'Recursos Naturales y Medicina Veterinaria', label: 'F. Rec. Naturales y Vet.' }
   ];
 
   const sortOptions = [
@@ -3441,6 +3457,7 @@ function renderAsig(){
   ];
 
   const filterSelectHtml = filterOptions.map(opt => `<option value="${opt.value}" ${asigFilter === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
+  const facultySelectHtml = facultyOptions.map(opt => `<option value="${opt.value}" ${asigFacultyFilter === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
   const sortSelectHtml = sortOptions.map(opt => `<option value="${opt.value}" ${asigSort === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
 
   document.getElementById('asig-content').innerHTML = `
@@ -3463,29 +3480,36 @@ function renderAsig(){
     </div>
 
     <!-- Responsive premium controls bar for filtering and sorting subjects -->
-    <div class="asig-controls-bar" style="display:flex; flex-wrap:wrap; gap:16px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); padding:16px; margin-bottom:24px; justify-content:space-between; align-items:center;">
-      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-        <span style="font-size:12.5px; font-weight:700; color:var(--t2); display:flex; align-items:center; gap:6px;"><i data-lucide="sliders-horizontal" style="width:14px; height:14px;"></i> Organizar:</span>
+    <div class="asig-controls-bar" style="display:flex; flex-wrap:wrap; gap:12px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); padding:16px; margin-bottom:24px; justify-content:space-between; align-items:center;">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <span style="font-size:12.5px; font-weight:700; color:var(--t2); display:flex; align-items:center; gap:4px;"><i data-lucide="sliders-horizontal" style="width:13px; height:13px;"></i> Organizar:</span>
         
         <!-- Filter dropdown -->
         <div style="position:relative;">
-          <select id="asig-filter-sel" onchange="changeAsigFilter(this.value)" style="padding:8px 12px; font-size:13px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
+          <select id="asig-filter-sel" onchange="changeAsigFilter(this.value)" style="padding:6px 10px; font-size:12.5px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
             ${filterSelectHtml}
+          </select>
+        </div>
+
+        <!-- Faculty Filter dropdown -->
+        <div style="position:relative;">
+          <select id="asig-faculty-sel" onchange="changeAsigFacultyFilter(this.value)" style="padding:6px 10px; font-size:12.5px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
+            ${facultySelectHtml}
           </select>
         </div>
 
         <!-- Sort dropdown -->
         <div style="position:relative;">
-          <select id="asig-sort-sel" onchange="changeAsigSort(this.value)" style="padding:8px 12px; font-size:13px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
+          <select id="asig-sort-sel" onchange="changeAsigSort(this.value)" style="padding:6px 10px; font-size:12.5px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
             ${sortSelectHtml}
           </select>
         </div>
       </div>
 
       <!-- Quick Action: Clear Filters if not "all" -->
-      ${(asigFilter !== 'all' || asigSort !== 'alpha') ? `
-        <button onclick="clearAsigFilters()" style="background:none; border:none; color:var(--pri); font-size:12.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; font-family:var(--fn);">
-          <i data-lucide="x" style="width:14px;height:14px;"></i> Limpiar filtros
+      ${(asigFilter !== 'all' || asigFacultyFilter !== 'all' || asigSort !== 'alpha') ? `
+        <button onclick="clearAsigFilters()" style="background:none; border:none; color:var(--pri); font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; font-family:var(--fn);">
+          <i data-lucide="x" style="width:13px;height:13px;"></i> Limpiar filtros
         </button>
       ` : ''}
     </div>
@@ -3523,8 +3547,14 @@ function changeAsigSort(val) {
   renderAsig();
 }
 
+function changeAsigFacultyFilter(val) {
+  asigFacultyFilter = val;
+  renderAsig();
+}
+
 function clearAsigFilters() {
   asigFilter = 'all';
+  asigFacultyFilter = 'all';
   asigSort = 'alpha';
   renderAsig();
 }
@@ -3573,7 +3603,25 @@ function duplicateSubj(event, subjName, cid) {
     alert("Ya existe una asignatura con ese nombre.");
     return;
   }
+  
+  // Prompt for Faculty Selection
+  const facultyChoice = prompt(
+    "Selecciona la Facultad para esta asignatura:\n" +
+    "1. Facultad de Ingeniería y Negocios\n" +
+    "2. Ciencias Sociales y Educación\n" +
+    "3. Recursos Naturales y Medicina Veterinaria\n" +
+    "Ingresa 1, 2 o 3 (o presione Aceptar para 'Facultad de Ingeniería y Negocios' por defecto):"
+  );
+  
+  let faculty = "Facultad de Ingeniería y Negocios";
+  if (facultyChoice === "2") faculty = "Ciencias Sociales y Educación";
+  else if (facultyChoice === "3") faculty = "Recursos Naturales y Medicina Veterinaria";
+
   S.subjects[cid].push(cleanedName);
+  
+  const facultyKey = `${cid}:${cleanedName}`;
+  S.subjectFaculties[facultyKey] = faculty;
+
   save();
   renderAsig();
 }
@@ -3583,29 +3631,59 @@ function editSubj(event, oldSubjName, cid) {
   const newName = prompt("Editar nombre de la asignatura:", oldSubjName);
   if (!newName) return;
   const cleanedName = newName.trim();
-  if (!cleanedName || cleanedName === oldSubjName) return;
+  if (!cleanedName) return;
   
-  if (S.subjects[cid].includes(cleanedName)) {
+  if (cleanedName !== oldSubjName && S.subjects[cid].includes(cleanedName)) {
     alert("Ya existe una asignatura con ese nombre.");
     return;
   }
   
-  // 1. Rename inside subjects array
-  S.subjects[cid] = S.subjects[cid].map(s => s === oldSubjName ? cleanedName : s);
-  
-  // 2. Rename inside resources
-  S.resources.forEach(r => {
-    if (r.clientId === cid && r.subject === oldSubjName) {
-      r.subject = cleanedName;
-    }
-  });
-  
-  // 3. Rename inside prioritySubjects keys
+  // Prompt for Faculty Selection
   const oldKey = `${cid}:${oldSubjName}`;
-  const newKey = `${cid}:${cleanedName}`;
-  if (S.prioritySubjects[oldKey]) {
-    S.prioritySubjects[newKey] = true;
-    delete S.prioritySubjects[oldKey];
+  const currentFaculty = S.subjectFaculties[oldKey] || "Facultad de Ingeniería y Negocios";
+  let promptNum = "1";
+  if (currentFaculty === "Ciencias Sociales y Educación") promptNum = "2";
+  else if (currentFaculty === "Recursos Naturales y Medicina Veterinaria") promptNum = "3";
+  
+  const facultyChoice = prompt(
+    "Editar Facultad de la asignatura:\n" +
+    "1. Facultad de Ingeniería y Negocios\n" +
+    "2. Ciencias Sociales y Educación\n" +
+    "3. Recursos Naturales y Medicina Veterinaria\n" +
+    "Ingresa 1, 2 o 3 (Actual: " + promptNum + "):",
+    promptNum
+  );
+  
+  let faculty = "Facultad de Ingeniería y Negocios";
+  if (facultyChoice === "2") faculty = "Ciencias Sociales y Educación";
+  else if (facultyChoice === "3") faculty = "Recursos Naturales y Medicina Veterinaria";
+  
+  // 1. Rename inside subjects array if changed
+  if (cleanedName !== oldSubjName) {
+    S.subjects[cid] = S.subjects[cid].map(s => s === oldSubjName ? cleanedName : s);
+    
+    // 2. Rename inside resources
+    S.resources.forEach(r => {
+      if (r.clientId === cid && r.subject === oldSubjName) {
+        r.subject = cleanedName;
+      }
+    });
+    
+    // 3. Rename inside prioritySubjects keys
+    const oldPKey = `${cid}:${oldSubjName}`;
+    const newPKey = `${cid}:${cleanedName}`;
+    if (S.prioritySubjects[oldPKey]) {
+      S.prioritySubjects[newPKey] = true;
+      delete S.prioritySubjects[oldPKey];
+    }
+    
+    // 4. Update faculty key
+    const newKey = `${cid}:${cleanedName}`;
+    S.subjectFaculties[newKey] = faculty;
+    delete S.subjectFaculties[oldKey];
+  } else {
+    // Just update the faculty for the existing name
+    S.subjectFaculties[oldKey] = faculty;
   }
   
   save();
@@ -3848,6 +3926,7 @@ load();
 loadCloud();
 // Enforce the custom subjects layout on boot
 S.prioritySubjects = S.prioritySubjects || {};
+S.subjectFaculties = S.subjectFaculties || {};
 S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
 // Pre-populate database with default Santo Tomás welcoming and closing resources if empty
 if (!S.resources || S.resources.length === 0) {
