@@ -2053,7 +2053,7 @@ const DEF_SUBJECTS=[
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let S={resources:[],subjects:CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]]),cfg:{urgDays:2,highDays:4}};
+let S={resources:[],subjects:CLIENTS.map((_,i)=>[...DEF_SUBJECTS[i]]),prioritySubjects:{},cfg:{urgDays:2,highDays:4}};
 let curClient='all'; // 'all' | 0 | 1 | 2
 let calOffset=0;
 let editId=null;
@@ -2062,13 +2062,21 @@ let dashPage=1;
 let recPage=1;
 const PAGE_SIZE=10;
 
+// Subjects Filter & Sort State
+let asigFilter = 'all'; // 'all' | 'in_progress' | 'completed' | 'no_resources' | 'priority'
+let asigSort = 'alpha'; // 'alpha' | 'progress_asc' | 'progress_desc' | 'resources_desc'
+
+
 function load(){
   const cl=localStorage.getItem('rfust_clients_v5');
   if(cl){try{CLIENTS=JSON.parse(cl)}catch(e){}}
   const d=localStorage.getItem('rfust_v5');
-  if(d){try{const p=JSON.parse(d);S={...S,...p};if(!S.subjects||S.subjects.length<CLIENTS.length){
-    S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
-  }}catch(e){}}
+  if(d){try{const p=JSON.parse(d);S={...S,...p};
+    if(!S.prioritySubjects) S.prioritySubjects = {};
+    if(!S.subjects||S.subjects.length<CLIENTS.length){
+      S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
+    }
+  }catch(e){}}
 }
 function save(){
   localStorage.setItem('rfust_v5',JSON.stringify(S));
@@ -3261,110 +3269,157 @@ function hideCalTooltip() {
 function renderAsig(){
   const R = cliRes(curClient);
   
-  // List of active subjects based on the filter
-  const subjsList = curClient === 'all'
+  // List of active subjects based on client
+  let subjsList = curClient === 'all'
     ? CLIENTS.flatMap(c => S.subjects[c.id].map(s => ({ s, cid: c.id })))
     : S.subjects[curClient].map(s => ({ s, cid: curClient }));
     
-  const totalAsig = subjsList.length;
-  
-  // Calculate average progress
+  // Calculate average progress for ALL active client subjects (before filters are applied)
   let totalPctSum = 0;
   subjsList.forEach(item => {
     const sr = S.resources.filter(r => r.subject === item.s && r.clientId === item.cid);
     const done = sr.filter(r => r.status === 'completado').length;
     totalPctSum += sr.length ? (done / sr.length * 100) : 0;
   });
-  const avgProgress = totalAsig ? Math.round(totalPctSum / totalAsig) : 0;
+  const avgProgress = subjsList.length ? Math.round(totalPctSum / subjsList.length) : 0;
   
   const activeClientName = curClient === 'all' ? 'DesignOps Suite' : CLIENTS.find(c => c.id === curClient).name;
-  
-  // Render cards
-  const cardsHtml = subjsList.map((item, idx) => {
+
+  // 1. Process data for each subject to enrich with metadata (progress, resources, priority)
+  subjsList = subjsList.map((item, idx) => {
     const c = CLIENTS.find(cl => cl.id === item.cid);
     const sr = S.resources.filter(r => r.subject === item.s && r.clientId === item.cid);
     const done = sr.filter(r => r.status === 'completado').length;
     const pct = sr.length ? Math.round(done / sr.length * 100) : 0;
     
+    // Check priority key: "clientId:subjectName"
+    const priorityKey = `${item.cid}:${item.s}`;
+    const isPriority = !!S.prioritySubjects[priorityKey];
+
+    return {
+      ...item,
+      c,
+      sr,
+      pct,
+      isPriority,
+      resourcesCount: sr.length
+    };
+  });
+
+  // 2. Filter subjects list
+  if (asigFilter === 'in_progress') {
+    subjsList = subjsList.filter(item => item.pct < 100 && item.resourcesCount > 0);
+  } else if (asigFilter === 'completed') {
+    subjsList = subjsList.filter(item => item.pct === 100 && item.resourcesCount > 0);
+  } else if (asigFilter === 'no_resources') {
+    subjsList = subjsList.filter(item => item.resourcesCount === 0);
+  } else if (asigFilter === 'priority') {
+    subjsList = subjsList.filter(item => item.isPriority);
+  }
+
+  // 3. Sort subjects list
+  if (asigSort === 'alpha') {
+    subjsList.sort((a, b) => a.s.localeCompare(b.s));
+  } else if (asigSort === 'progress_asc') {
+    subjsList.sort((a, b) => a.pct - b.pct);
+  } else if (asigSort === 'progress_desc') {
+    subjsList.sort((a, b) => b.pct - a.pct);
+  } else if (asigSort === 'resources_desc') {
+    subjsList.sort((a, b) => b.resourcesCount - a.resourcesCount);
+  }
+
+  const totalAsig = subjsList.length;
+
+  // Render cards
+  const cardsHtml = subjsList.map((item, idx) => {
     // Generate code and semester
     const letterCode = item.s.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
     const code = `Código: ${letterCode}${100 + idx} • Semestre ${(idx % 4) + 1}`;
+    const priorityKey = `${item.cid}:${item.s}`;
     
-    return `<div class="asig-card c-${item.cid}" style="position:relative;">
+    // Gold highlighted border left if high priority, else client default accent width
+    const highlightStyle = item.isPriority 
+      ? `border-left: 5px solid #f59e0b; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.08);` 
+      : ``;
+
+    return `<div class="asig-card c-${item.cid}" style="position:relative; ${highlightStyle}">
       <!-- Subtle watermark background icon inside card -->
-      <div class="asig-card-watermark" style="position:absolute; right:-15px; bottom:-15px; color:${c.colorVal}; opacity:0.04; pointer-events:none; transform:rotate(-15deg); z-index:1;"><i data-lucide="graduation-cap" style="width:100px; height:100px; stroke-width:1;"></i></div>
-      <div class="asig-card-header" style="position:relative; z-index:2;">
-        <span class="asig-card-badge b-${c.short.toLowerCase()}">
-          <i data-lucide="graduation-cap" style="width:12px;height:12px;"></i> ${c.name}
-        </span>
+      <div class="asig-card-watermark" style="position:absolute; right:-15px; bottom:-15px; color:${item.c.colorVal}; opacity:0.04; pointer-events:none; transform:rotate(-15deg); z-index:1;"><i data-lucide="graduation-cap" style="width:100px; height:100px; stroke-width:1;"></i></div>
+      <div class="asig-card-header" style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; width:100%;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="asig-card-badge b-${item.c.short.toLowerCase()}">
+            <i data-lucide="graduation-cap" style="width:12px;height:12px;"></i> ${item.c.name}
+          </span>
+          ${item.isPriority ? `
+            <span class="asig-card-badge" style="background:var(--wal); color:#d97706; border:1px solid rgba(245, 158, 11, 0.3); font-weight:700;">
+              <i data-lucide="star" style="width:12px;height:12px;fill:#d97706;"></i> Alta Prioridad
+            </span>
+          ` : ''}
+        </div>
         <div style="position:relative;">
           <button class="asig-card-dots" onclick="toggleAsigMenu(event, ${idx})">
             <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
           </button>
-          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:24px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.15); z-index:50; width:140px; padding:4px 0;">
+          <div class="asig-dropdown" id="asig-drop-${idx}" style="display:none; position:absolute; right:0; top:24px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); box-shadow:0 10px 25px rgba(15, 23, 42, 0.15); z-index:50; width:170px; padding:4px 0;">
+            <button onclick="togglePriority(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);">
+              <i data-lucide="star" style="width:13px;height:13px;color:#f59e0b; ${item.isPriority ? 'fill:#f59e0b;' : ''}"></i> 
+              ${item.isPriority ? 'Quitar Prioridad' : 'Prioridad Alta'}
+            </button>
             <button onclick="duplicateSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--tx); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="copy" style="width:13px;height:13px;color:var(--t3);"></i> Duplicar</button>
             <button onclick="deleteSubj(event, '${item.s.replace(/'/g, "\\'")}', ${item.cid})" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; font-weight:600; color:var(--er); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--fn);"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--er);"></i> Eliminar</button>
           </div>
         </div>
       </div>
-      <div style="position:relative; z-index:2;">
+      <div style="position:relative; z-index:2; margin-top: 12px;">
         <h4 class="asig-card-name">${item.s}</h4>
         <div class="asig-card-code">${code}</div>
       </div>
       <div class="asig-progress-wrap" style="position:relative; z-index:2;">
         <div class="asig-progress-lbl">
           <span>Progreso</span>
-          <span style="color:${c.colorVal};">${pct}%</span>
+          <span style="color:${item.c.colorVal};">${item.pct}%</span>
         </div>
         <div class="asig-pb">
-          <div class="asig-pbf" style="width:${pct}%;background:${c.colorVal};"></div>
+          <div class="asig-pbf" style="width:${item.pct}%;background:${item.c.colorVal};"></div>
         </div>
       </div>
       <div class="asig-card-footer" style="position:relative; z-index:2;">
-        <span class="asig-res-count"><i data-lucide="folder" style="width:14px;height:14px;color:var(--t3);"></i> ${sr.length} Recursos</span>
-        <a class="asig-det-btn" onclick="filterSubCli('${item.s}', ${item.cid})" style="color:${c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        <span class="asig-res-count"><i data-lucide="folder" style="width:14px;height:14px;color:var(--t3);"></i> ${item.resourcesCount} Recursos</span>
+        <a class="asig-det-btn" onclick="filterSubCli('${item.s}', ${item.cid})" style="color:${item.c.colorVal};">Ver detalles <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
       </div>
     </div>`;
   }).join('');
 
-  // Semestre metrics
-  const pendingCount = R.filter(r => r.status !== 'completado').length;
-  
-  // Dynamic client summary calculations
-  const clientSummaryHtml = CLIENTS.map(c => {
-    const cSubjs = S.subjects[c.id];
-    const cR = S.resources.filter(r => r.clientId === c.id);
-    let pctSum = 0;
-    cSubjs.forEach(s => {
-      const sr = cR.filter(r => r.subject === s);
-      const done = sr.filter(r => r.status === 'completado').length;
-      pctSum += sr.length ? (done / sr.length * 100) : 0;
-    });
-    const cAvg = cSubjs.length ? Math.round(pctSum / cSubjs.length) : 0;
-    
-    return `<div class="asig-summary-item">
-      <span class="asig-summary-client">
-        <span class="asig-summary-dot" style="background:${c.colorVal};"></span> ${c.name}
-      </span>
-      <span class="asig-summary-vals">${cSubjs.length} Asig. • ${cAvg}%</span>
-    </div>`;
-  }).join('');
+  // Dropdowns selection filters UI
+  const filterOptions = [
+    { value: 'all', label: 'Todas las asignaturas' },
+    { value: 'priority', label: 'Alta Prioridad ⭐' },
+    { value: 'in_progress', label: 'En Progreso' },
+    { value: 'completed', label: 'Completadas' },
+    { value: 'no_resources', label: 'Sin Recursos' }
+  ];
 
-  // Radial progress calculations
-  const circumference = 2 * Math.PI * 50;
-  const strokeDashoffset = circumference - (circumference * avgProgress / 100);
+  const sortOptions = [
+    { value: 'alpha', label: 'Orden alfabético (A-Z)' },
+    { value: 'progress_desc', label: 'Progreso: Mayor a Menor' },
+    { value: 'progress_asc', label: 'Progreso: Menor a Mayor' },
+    { value: 'resources_desc', label: 'Cantidad de recursos' }
+  ];
+
+  const filterSelectHtml = filterOptions.map(opt => `<option value="${opt.value}" ${asigFilter === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
+  const sortSelectHtml = sortOptions.map(opt => `<option value="${opt.value}" ${asigSort === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
 
   document.getElementById('asig-content').innerHTML = `
     <div class="asig-pre"><i data-lucide="graduation-cap" style="width:14px;height:14px;"></i> ${activeClientName}</div>
     <div class="asig-title-container">
       <div class="asig-title-left">
         <h2>Mis Asignaturas</h2>
-        <p>Gestión de recursos y seguimiento de progreso para el ciclo actual.</p>
+        <p>Gestión de recursos, prioridades y seguimiento de progreso académico.</p>
       </div>
       <div class="asig-stats">
         <div class="asig-stat-box">
-          <span class="asig-stat-lbl">Carga Total</span>
-          <span class="asig-stat-val">${totalAsig} Asignaturas</span>
+          <span class="asig-stat-lbl">Filtradas</span>
+          <span class="asig-stat-val">${totalAsig}</span>
         </div>
         <div class="asig-stat-box">
           <span class="asig-stat-lbl">Promedio Avance</span>
@@ -3372,10 +3427,47 @@ function renderAsig(){
         </div>
       </div>
     </div>
-    
-    <div class="asig-grid">
-      ${cardsHtml}
+
+    <!-- Responsive premium controls bar for filtering and sorting subjects -->
+    <div class="asig-controls-bar" style="display:flex; flex-wrap:wrap; gap:16px; background:var(--sf); border:1px solid var(--br); border-radius:var(--rs); padding:16px; margin-bottom:24px; justify-content:space-between; align-items:center;">
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <span style="font-size:12.5px; font-weight:700; color:var(--t2); display:flex; align-items:center; gap:6px;"><i data-lucide="sliders-horizontal" style="width:14px; height:14px;"></i> Organizar:</span>
+        
+        <!-- Filter dropdown -->
+        <div style="position:relative;">
+          <select id="asig-filter-sel" onchange="changeAsigFilter(this.value)" style="padding:8px 12px; font-size:13px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
+            ${filterSelectHtml}
+          </select>
+        </div>
+
+        <!-- Sort dropdown -->
+        <div style="position:relative;">
+          <select id="asig-sort-sel" onchange="changeAsigSort(this.value)" style="padding:8px 12px; font-size:13px; font-weight:600; border-radius:var(--rs); border:1px solid var(--br); background:var(--s2); color:var(--tx); cursor:pointer; font-family:var(--fn); outline:none; transition:0.2s;">
+            ${sortSelectHtml}
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Action: Clear Filters if not "all" -->
+      ${(asigFilter !== 'all' || asigSort !== 'alpha') ? `
+        <button onclick="clearAsigFilters()" style="background:none; border:none; color:var(--pri); font-size:12.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; font-family:var(--fn);">
+          <i data-lucide="x" style="width:14px;height:14px;"></i> Limpiar filtros
+        </button>
+      ` : ''}
     </div>
+    
+    ${totalAsig === 0 ? `
+      <div class="asig-load-block" style="padding:48px 24px;">
+        <div style="font-size:40px; margin-bottom:12px;">🔍</div>
+        <div class="asig-load-text" style="font-size:15px; font-weight:700; color:var(--tx);">No se encontraron asignaturas</div>
+        <p style="font-size:13px; color:var(--t3); margin-bottom:16px;">Prueba ajustando los filtros u ordenamiento para ver otros elementos.</p>
+        <button class="btn btn-sec" onclick="clearAsigFilters()" style="margin:0 auto; display:block;">Restablecer filtros</button>
+      </div>
+    ` : `
+      <div class="asig-grid">
+        ${cardsHtml}
+      </div>
+    `}
     
     <div class="asig-load-block">
       <div class="asig-load-text">Cargando asignaturas adicionales...</div>
@@ -3385,64 +3477,39 @@ function renderAsig(){
   
   lucide.createIcons();
 }
-function filterSubCli(s,cid){
-  if(curClient==='all')setClient(cid);
-  go('recursos');
-  setTimeout(()=>{
-    const sel = document.getElementById('fs');
-    if(sel){ sel.value=s; renderResources(); }
-  },60);
+
+// Controls handlers
+function changeAsigFilter(val) {
+  asigFilter = val;
+  renderAsig();
 }
 
-function toggleAsigMenu(event, idx) {
-  event.stopPropagation();
-  // Close all other dropdowns
-  document.querySelectorAll('.asig-dropdown').forEach(d => {
-    if (d.id !== `asig-drop-${idx}`) d.style.display = 'none';
-  });
-  const el = document.getElementById(`asig-drop-${idx}`);
-  if (el) {
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  }
+function changeAsigSort(val) {
+  asigSort = val;
+  renderAsig();
 }
 
-function duplicateSubj(event, subjName, cid) {
+function clearAsigFilters() {
+  asigFilter = 'all';
+  asigSort = 'alpha';
+  renderAsig();
+}
+
+// Toggle priority tag dynamically and save
+function togglePriority(event, subjName, cid) {
   event.stopPropagation();
-  const newName = prompt("Nombre de la asignatura duplicada:", subjName + " (Copia)");
-  if (!newName) return;
-  const cleanedName = newName.trim();
-  if (!cleanedName) return;
-  if (S.subjects[cid].includes(cleanedName)) {
-    alert("Ya existe una asignatura con ese nombre.");
-    return;
+  const priorityKey = `${cid}:${subjName}`;
+  if (S.prioritySubjects[priorityKey]) {
+    delete S.prioritySubjects[priorityKey];
+  } else {
+    S.prioritySubjects[priorityKey] = true;
   }
-  S.subjects[cid].push(cleanedName);
   save();
   renderAsig();
 }
 
-function deleteSubj(event, subjName, cid) {
-  event.stopPropagation();
-  const sr = S.resources.filter(r => r.subject === subjName && r.clientId === cid);
-  let msg = `¿Seguro que deseas eliminar la asignatura "${subjName}"?`;
-  if (sr.length > 0) {
-    msg += `\nEsto también eliminará permanentemente los ${sr.length} recursos asociados a ella.`;
-  }
-  if (!confirm(msg)) return;
-  
-  // Remove subject from the list
-  S.subjects[cid] = S.subjects[cid].filter(s => s !== subjName);
-  // Remove resources associated with it
-  S.resources = S.resources.filter(r => !(r.subject === subjName && r.clientId === cid));
-  
-  save();
-  renderAsig();
-}
 
-// Global click handler to close dropdowns when clicking outside
-document.addEventListener('click', () => {
-  document.querySelectorAll('.asig-dropdown').forEach(d => d.style.display = 'none');
-});
+
 
 // ══════════════════════════════════════════════════════════
 // INGRESOS VIEW
@@ -3652,6 +3719,7 @@ if (urlSyncKey && urlSyncKey.toUpperCase().startsWith('RF-SYNC-') && urlSyncKey.
 load();
 loadCloud();
 // Enforce the custom subjects layout on boot
+S.prioritySubjects = S.prioritySubjects || {};
 S.subjects = CLIENTS.map((c, i) => S.subjects[c.id] || [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])]);
 // Pre-populate database with default Santo Tomás welcoming and closing resources if empty
 if (!S.resources || S.resources.length === 0) {
