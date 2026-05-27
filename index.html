@@ -3113,6 +3113,9 @@ function renderCalendar(){
     } else {
       R = R.filter(r => r.status === fst);
     }
+  } else {
+    // Exclude completed resources from the calendar by default
+    R = R.filter(r => r.status !== 'completado');
   }
 
   R.forEach(r=>{if(!r.dueDate)return;const d=new Date(r.dueDate+'T00:00:00');if(d.getFullYear()===year&&d.getMonth()===month){const k=d.getDate();(byDay[k]||(byDay[k]=[])).push(r)}});
