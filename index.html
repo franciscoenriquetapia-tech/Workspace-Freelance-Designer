@@ -1857,23 +1857,15 @@ select:focus, input:focus, textarea:focus {
             <div class="sh"><span class="st"><i data-lucide="cloud-lightning" style="margin-right:6px; color:var(--pri);"></i>Sincronización en la Nube</span></div>
             <div style="margin-top:12px; font-family:var(--fn);">
               <p style="font-size:11.5px; color:var(--t3); line-height:1.45; margin-bottom:12px; font-weight:500;">
-                Tus datos se sincronizan automáticamente en la nube. Guarda tu clave única para vincular otros computadores.
+                Tus datos se sincronizan automáticamente en la nube entre todos tus dispositivos de forma invisible, rápida y segura. No necesitas configurar claves ni contraseñas.
               </p>
               
-              <div class="fg" style="margin-bottom:12px;">
+              <div class="fg" style="margin-bottom:12px; display:none;">
                 <label class="fl">Tu Clave Única de Sincronización</label>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                   <input type="text" id="cfg-sync-key" readonly style="background:var(--s2); font-weight:700; font-family:var(--mo); font-size:12.5px; color:var(--tx); flex:1; min-width:180px;" value="Generando clave...">
                   <button class="btn btn-sec" onclick="copySyncKey()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px;" title="Copiar Clave"><i data-lucide="copy" style="width:14px;height:14px;"></i> Copiar Clave</button>
                   <button class="btn btn-sec" onclick="copySyncLink()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px; background:var(--pril); border:1px solid var(--pria); color:var(--pri);" title="Copiar Enlace de Sincronización Automática"><i data-lucide="share-2" style="width:14px;height:14px;"></i> Copiar Enlace Auto-Sync</button>
-                </div>
-              </div>
-
-              <div class="fg" style="margin-bottom:12px;">
-                <label class="fl" style="color:var(--pri);">Vincular Clave Existente</label>
-                <div style="display:flex; gap:6px;">
-                  <input type="text" id="cfg-link-key" placeholder="Pega una clave rf-sync-xxxx aquí..." style="font-family:var(--mo); font-size:12.5px; flex:1;">
-                  <button class="btn btn-p" onclick="linkSyncKey()" style="padding:0 12px; height:36px; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="link"></i> Vincular</button>
                 </div>
               </div>
 
@@ -2253,20 +2245,12 @@ async function saveCloud() {
 }
 
 async function loadCloud() {
-  let key = localStorage.getItem('rf_sync_key');
+  const key = 'RF-SYNC-E7UP85';
+  localStorage.setItem('rf_sync_key', key);
   const statusEl = document.getElementById('sync-status');
   
-  if (!key || key.length > 20 || !key.toUpperCase().startsWith('RF-SYNC-')) {
-    key = generateSyncKey();
-    localStorage.setItem('rf_sync_key', key);
-    const keyEl = document.getElementById('cfg-sync-key');
-    if(keyEl) keyEl.value = key;
-    await saveCloud();
-    return;
-  }
-  
   const keyEl = document.getElementById('cfg-sync-key');
-  if(keyEl) keyEl.value = key.toUpperCase();
+  if(keyEl) keyEl.value = key;
   
   if (statusEl) {
     statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Cargando desde la nube (Firebase)...`;
