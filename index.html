@@ -1682,7 +1682,7 @@ select:focus, input:focus, textarea:focus {
             </div>
             <div class="fg"><label class="fl">Fecha asignación *</label><input type="date" id="f-ass" oninput="fAutoDue()"></div>
             <div class="fg"><label class="fl">Fecha límite</label><input type="date" id="f-due"></div>
-            <div class="fg"><label class="fl">Diseñador instruccional</label><input type="text" id="f-di" placeholder="Ej: CÁLC-102"></div>
+            <div class="fg"><label class="fl">Enlace del repositorio</label><input type="url" id="f-di" placeholder="Ej: https://drive.google.com/..."></div>
             <div class="fg"><label class="fl">Estado inicial</label>
               <select id="f-st">
                 <option value="pendiente">Pendiente</option>
@@ -1948,7 +1948,7 @@ select:focus, input:focus, textarea:focus {
       </div>
       <div class="fg"><label class="fl">Fecha asignación</label><input type="date" id="e-ass" oninput="eAutoDue()"></div>
       <div class="fg"><label class="fl">Fecha límite</label><input type="date" id="e-due"></div>
-      <div class="fg"><label class="fl">Código / D.I.</label><input type="text" id="e-di"></div>
+      <div class="fg"><label class="fl">Enlace del repositorio</label><input type="url" id="e-di" placeholder="Ej: https://drive.google.com/..."></div>
       <div class="fg"><label class="fl">Estado</label>
         <select id="e-st">
           <option value="pendiente">Pendiente</option>
@@ -2031,7 +2031,7 @@ select:focus, input:focus, textarea:focus {
         </div>
         <!-- D.I. -->
         <div>
-          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Código / D.I.</span>
+          <span style="font-size:10.5px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.3px;">Enlace del Repositorio</span>
           <div id="v-di" style="font-size:12px; font-weight:600; color:var(--tx); margin-top:4px; font-family:var(--mo);"></div>
         </div>
       </div>
@@ -3097,7 +3097,12 @@ function openViewRes(id) {
   else if(dL(r.dueDate) <= S.cfg.urgDays){ statusCls='s-urgent'; statusText='Urgente'; }
   
   document.getElementById('v-status').innerHTML = `<span class="status-badge ${statusCls}">${statusText}</span>`;
-  document.getElementById('v-di').textContent = r.assignedBy || '–';
+  const linkText = (r.assignedBy || '').trim();
+  if (linkText.startsWith('http://') || linkText.startsWith('https://')) {
+    document.getElementById('v-di').innerHTML = `<a href="${linkText}" target="_blank" style="color:var(--pri); text-decoration:underline; word-break:break-all;">Abrir enlace <i data-lucide="external-link" style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-left:2px;"></i></a>`;
+  } else {
+    document.getElementById('v-di').textContent = linkText || '–';
+  }
   document.getElementById('v-notes').textContent = r.notes || 'Sin indicaciones especiales registradas.';
   
   // Dynamic action buttons
