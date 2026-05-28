@@ -3084,15 +3084,19 @@ function checkAndNotifyResource(r) {
   const c = CLIENTS.find(cl => cl.id === r.clientId)?.name || 'Cliente';
   
   if (r.status !== 'completado') {
+    const repoLink = (r.assignedBy && r.assignedBy.startsWith('http')) ? r.assignedBy : (r.assignedBy || 'Sin enlace');
+    const excelLink = (S.subjectLinks && S.subjectLinks[`${r.clientId}:${r.subject}`]) || 'Sin Excel de seguimiento';
+    const linksText = `\n\n📌 Enlace del Recurso: ${repoLink}\n📊 Proyecto Excel: ${excelLink}`;
+
     if (d < 0) {
       triggerNotification(
         `🚨 Recurso Vencido: ${r.title}`,
-        `Asignatura: ${r.subject} (${c}). Vencido hace ${Math.abs(d)} días.`
+        `Asignatura: ${r.subject} (${c}). Vencido hace ${Math.abs(d)} días.${linksText}`
       );
     } else if (d <= u) {
       triggerNotification(
         `🔴 Recurso Urgente (Plazo ≤ ${u}d): ${r.title}`,
-        `Asignatura: ${r.subject} (${c}). Límite: ${fDate(r.dueDate)}.`
+        `Asignatura: ${r.subject} (${c}). Límite: ${fDate(r.dueDate)}.${linksText}`
       );
     }
   }
