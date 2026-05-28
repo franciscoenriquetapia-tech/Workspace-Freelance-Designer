@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
 <style>
 :root {
   --bg: #EDEBF8; /* Beautiful periwinkle grey canvas background from Google Stitch */
@@ -2119,6 +2121,18 @@ select:focus, input:focus, textarea:focus {
 
 <script>
 if (typeof emailjs !== 'undefined') emailjs.init("zBVzt6_WJl9vlStmB");
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDlss_KMy4VBRvwvaGOIFeRVNBJYu9nYKA",
+  authDomain: "orkspace-freelance-designer.firebaseapp.com",
+  databaseURL: "https://orkspace-freelance-designer-default-rtdb.firebaseio.com",
+  projectId: "orkspace-freelance-designer",
+  storageBucket: "orkspace-freelance-designer.firebasestorage.app",
+  messagingSenderId: "354939584832",
+  appId: "1:354939584832:web:9db04684877b7c6c7efaa5",
+  measurementId: "G-NNGSPSC0MC"
+};
+firebase.initializeApp(firebaseConfig);
 // ══════════════════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════════════════
@@ -2243,7 +2257,9 @@ async function saveCloud() {
     statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Sincronizando...`;
   }
   try {
-    const response = await fetch(`${DB_BASE}${key.toUpperCase()}.json`, {
+    const token = firebase.auth().currentUser ? await firebase.auth().currentUser.getIdToken() : '';
+    const authQuery = token ? `?auth=${token}` : '';
+    const response = await fetch(`${DB_BASE}${key.toUpperCase()}.json${authQuery}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ S, CLIENTS })
@@ -2276,7 +2292,9 @@ async function loadCloud() {
   }
   
   try {
-    const response = await fetch(`${DB_BASE}${key.toUpperCase()}.json`);
+    const token = firebase.auth().currentUser ? await firebase.auth().currentUser.getIdToken() : '';
+    const authQuery = token ? `?auth=${token}` : '';
+    const response = await fetch(`${DB_BASE}${key.toUpperCase()}.json${authQuery}`);
     if (response.ok) {
       const data = await response.json();
       if (data && data.S && data.CLIENTS) {
@@ -4143,15 +4161,20 @@ function generateDefaultSantoTomasResources() {
 // INIT & SECURITY
 // ══════════════════════════════════════════════════════════
 
-function checkPassword() {
+async function checkPassword() {
   const pwd = document.getElementById('login-pwd').value;
-  if (pwd === 'admin') {
+  const email = 'franciscoenrique.tapia@gmail.com';
+  document.getElementById('login-err').style.color = 'var(--t3)';
+  document.getElementById('login-err').textContent = 'Autenticando...';
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, pwd);
     document.getElementById('login-container').style.display = 'none';
     document.getElementById('main-app-container').style.display = 'flex';
     unlockApp();
-  } else {
-    document.getElementById('login-err').textContent = 'Contraseña incorrecta';
-    setTimeout(() => { document.getElementById('login-err').textContent = ''; }, 2000);
+  } catch (err) {
+    document.getElementById('login-err').style.color = 'var(--er)';
+    document.getElementById('login-err').textContent = 'Contraseña incorrecta o usuario no encontrado';
+    setTimeout(() => { document.getElementById('login-err').textContent = ''; }, 3000);
   }
 }
 
