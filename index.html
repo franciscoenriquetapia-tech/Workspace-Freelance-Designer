@@ -1402,7 +1402,26 @@ select:focus, input:focus, textarea:focus {
 </head>
 <body>
 
-<div class="app-container">
+<!-- PANTALLA DE LOGIN (SEGURIDAD FRONTEND) -->
+<div id="login-container" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999999; display:flex; align-items:center; justify-content:center; flex-direction:column; padding:20px;">
+  <div style="background:var(--sf); padding:40px 30px; border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,0.08); max-width:400px; width:100%; text-align:center;">
+    <div style="width:56px; height:56px; background:var(--pril); color:var(--pri); border-radius:16px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+      <i data-lucide="lock" style="width:28px; height:28px;"></i>
+    </div>
+    <h2 style="font-size:22px; font-weight:700; color:var(--tx); margin-bottom:8px; line-height:1.2;">Workspace Privado</h2>
+    <p style="font-size:13px; color:var(--t3); margin-bottom:24px; line-height:1.5;">Esta aplicación requiere autenticación. Por favor, ingresa tu contraseña maestra para acceder.</p>
+    
+    <div class="fg" style="text-align:left; margin-bottom:20px;">
+      <label class="fl">Contraseña Maestra</label>
+      <input type="password" id="login-pwd" placeholder="••••••••" style="text-align:center; letter-spacing:3px; font-size:16px;" onkeyup="if(event.key==='Enter') checkPassword()">
+    </div>
+    
+    <button class="btn btn-p" style="width:100%; height:44px; font-size:14px;" onclick="checkPassword()">Desbloquear <i data-lucide="arrow-right"></i></button>
+    <div id="login-err" style="color:var(--er); font-size:12px; font-weight:600; margin-top:12px; height:18px;"></div>
+  </div>
+</div>
+
+<div class="app-container" id="main-app-container" style="display:none;">
 
   <!-- BOTTOM NAVIGATION FOR MOBILE -->
   <nav class="bottom-nav">
@@ -4121,43 +4140,61 @@ function generateDefaultSantoTomasResources() {
 }
 
 // ══════════════════════════════════════════════════════════
-// INIT
+// INIT & SECURITY
 // ══════════════════════════════════════════════════════════
-const urlParams = new URLSearchParams(window.location.search);
-const urlSyncKey = urlParams.get('sync');
-if (urlSyncKey && urlSyncKey.toUpperCase().startsWith('RF-SYNC-') && urlSyncKey.length >= 10) {
-  localStorage.setItem('rf_sync_key', urlSyncKey.toUpperCase());
-  window.history.replaceState({}, document.title, window.location.pathname);
-}
-load();
-loadCloud();
-// Enforce the custom subjects layout on boot
-S.prioritySubjects = S.prioritySubjects || {};
-S.subjectFaculties = S.subjectFaculties || {};
-let newInitSubj = [];
-CLIENTS.forEach(c => {
-  newInitSubj[c.id] = (S.subjects && S.subjects[c.id]) ? S.subjects[c.id] : [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])];
-});
-S.subjects = newInitSubj;
-// Pre-populate database with default Santo Tomás welcoming and closing resources if empty
-if (!S.resources || S.resources.length === 0) {
-  S.resources = generateDefaultSantoTomasResources();
-}
-save();
-renderDynamicHeaderCbar();
-// Dynamically inject styling for saved clients colors
-CLIENTS.forEach(c => {
-  const styleEl = document.createElement('style');
-  styleEl.textContent = `:root { --c${c.id}: ${c.colorVal}; --c${c.id}l: ${c.colorVal}1a; --c${c.id}t: ${c.colorVal}; }`;
-  document.head.appendChild(styleEl);
-});
-updateDot();
-renderDash();
-fillFilters();
-document.getElementById('modal-edit').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEdit()});
-document.getElementById('modal-projects').addEventListener('click',e=>{if(e.target===e.currentTarget)closeProjects()});
 
-// Initialize modern Lucide flat icons globally
+function checkPassword() {
+  const pwd = document.getElementById('login-pwd').value;
+  if (pwd === 'admin') {
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('main-app-container').style.display = 'flex';
+    unlockApp();
+  } else {
+    document.getElementById('login-err').textContent = 'Contraseña incorrecta';
+    setTimeout(() => { document.getElementById('login-err').textContent = ''; }, 2000);
+  }
+}
+
+function unlockApp() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlSyncKey = urlParams.get('sync');
+  if (urlSyncKey && urlSyncKey.toUpperCase().startsWith('RF-SYNC-') && urlSyncKey.length >= 10) {
+    localStorage.setItem('rf_sync_key', urlSyncKey.toUpperCase());
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  load();
+  loadCloud();
+  // Enforce the custom subjects layout on boot
+  S.prioritySubjects = S.prioritySubjects || {};
+  S.subjectFaculties = S.subjectFaculties || {};
+  let newInitSubj = [];
+  CLIENTS.forEach(c => {
+    newInitSubj[c.id] = (S.subjects && S.subjects[c.id]) ? S.subjects[c.id] : [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])];
+  });
+  S.subjects = newInitSubj;
+  // Pre-populate database with default Santo Tomás welcoming and closing resources if empty
+  if (!S.resources || S.resources.length === 0) {
+    S.resources = generateDefaultSantoTomasResources();
+  }
+  save();
+  renderDynamicHeaderCbar();
+  // Dynamically inject styling for saved clients colors
+  CLIENTS.forEach(c => {
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `:root { --c${c.id}: ${c.colorVal}; --c${c.id}l: ${c.colorVal}1a; --c${c.id}t: ${c.colorVal}; }`;
+    document.head.appendChild(styleEl);
+  });
+  updateDot();
+  renderDash();
+  fillFilters();
+  document.getElementById('modal-edit').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEdit()});
+  document.getElementById('modal-projects').addEventListener('click',e=>{if(e.target===e.currentTarget)closeProjects()});
+
+  // Initialize modern Lucide flat icons globally
+  lucide.createIcons();
+}
+
+// Inicializar iconos básicos que sí están en el DOM (como el candado del login)
 lucide.createIcons();
 </script>
 </body>
