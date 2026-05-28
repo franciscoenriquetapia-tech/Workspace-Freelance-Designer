@@ -2107,6 +2107,7 @@ select:focus, input:focus, textarea:focus {
 </div>
 
 <script>
+if (typeof emailjs !== 'undefined') emailjs.init("zBVzt6_WJl9vlStmB");
 // ══════════════════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════════════════
@@ -3064,7 +3065,7 @@ function triggerNotification(title, body) {
     const emailTo = S.cfg.email;
     console.log(`[Email Service] Despachando alerta a ${emailTo}: "${title}"`);
     if (typeof emailjs !== 'undefined') {
-      emailjs.send("service_default", "template_alert", {
+      emailjs.send("service_aq3jlle", "template_bd51wkx", {
         to_email: emailTo,
         subject: title,
         message: body,
