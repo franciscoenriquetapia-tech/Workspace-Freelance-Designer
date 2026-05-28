@@ -3065,7 +3065,7 @@ function triggerNotification(title, body) {
     const emailTo = S.cfg?.email || 'franciscoenrique.tapia@gmail.com';
     console.log(`[Email Service] Despachando alerta a ${emailTo}: "${title}"`);
     if (typeof emailjs !== 'undefined') {
-      emailjs.send("service_aq3jlle", "template_bd51wkx", {
+      emailjs.send("service_elmwdqa", "template_bd51wkx", {
         to_email: emailTo,
         subject: title,
         message: body,
