@@ -1882,6 +1882,46 @@ select:focus, input:focus, textarea:focus {
   </main>
 </div>
 
+<!-- MODAL EDITAR ASIGNATURA -->
+<div class="modal-bg" id="modal-edit-asig">
+  <div class="modal" style="max-width: 480px;">
+    <div class="mhdr">
+      <span class="mtit"><i data-lucide="book-open" style="margin-right:8px;vertical-align:middle;color:var(--pri);"></i>Editar Asignatura</span>
+      <button class="mclose" onclick="closeEditAsig()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="fg2" style="gap:11px;margin-bottom:11px">
+      <input type="hidden" id="ea-cid">
+      <input type="hidden" id="ea-oldname">
+      
+      <div class="fg full">
+        <label class="fl">Nombre de la asignatura *</label>
+        <input type="text" id="ea-name">
+      </div>
+      
+      <div class="fg full">
+        <label class="fl">Facultad *</label>
+        <select id="ea-fac">
+          <option value="Facultad de Ingeniería y Negocios">Facultad de Ingeniería y Negocios</option>
+          <option value="Ciencias Sociales y Educación">Ciencias Sociales y Educación</option>
+          <option value="Recursos Naturales y Medicina Veterinaria">Recursos Naturales y Medicina Veterinaria</option>
+        </select>
+      </div>
+      
+      <div class="fg full" style="display:flex; align-items:center; gap:8px; margin-top: 8px;">
+        <input type="checkbox" id="ea-pri" style="width:auto; cursor:pointer;">
+        <label for="ea-pri" style="font-size:12px; font-weight:700; cursor:pointer; color:var(--tx); display:flex; align-items:center; gap:4px;">
+          <i data-lucide="star" style="width:14px;height:14px;color:#f59e0b;fill:#f59e0b;"></i> Marcar como Alta Prioridad
+        </label>
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:7px;margin-top:20px;">
+      <button class="btn btn-p" onclick="saveEditAsig()"><i data-lucide="save"></i> Guardar Cambios</button>
+      <button class="btn btn-sec" onclick="closeEditAsig()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR -->
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
@@ -3670,35 +3710,45 @@ function _doPriority(subjName, cid) {
 }
 
 function _doEdit(oldSubjName, cid) {
-  const newName = prompt("Editar nombre de la asignatura:", oldSubjName);
-  if (!newName) return;
-  const cleanedName = newName.trim();
-  if (!cleanedName) return;
+  document.getElementById('ea-cid').value = cid;
+  document.getElementById('ea-oldname').value = oldSubjName;
+  document.getElementById('ea-name').value = oldSubjName;
+  
+  const oldKey = `${cid}:${oldSubjName}`;
+  const currentFaculty = (S.subjectFaculties && S.subjectFaculties[oldKey]) || "Facultad de Ingeniería y Negocios";
+  document.getElementById('ea-fac').value = currentFaculty;
+  
+  const isPri = S.prioritySubjects && S.prioritySubjects[oldKey];
+  document.getElementById('ea-pri').checked = !!isPri;
+  
+  document.getElementById('modal-edit-asig').classList.add('on');
+  lucide.createIcons();
+}
 
+function closeEditAsig() {
+  document.getElementById('modal-edit-asig').classList.remove('on');
+}
+
+function saveEditAsig() {
+  const cid = parseInt(document.getElementById('ea-cid').value);
+  const oldSubjName = document.getElementById('ea-oldname').value;
+  const newName = document.getElementById('ea-name').value;
+  const cleanedName = newName.trim();
+  const faculty = document.getElementById('ea-fac').value;
+  const isPri = document.getElementById('ea-pri').checked;
+  
+  if (!cleanedName) {
+    alert("El nombre no puede estar vacío.");
+    return;
+  }
+  
   if (cleanedName !== oldSubjName && (S.subjects[cid] || []).includes(cleanedName)) {
     alert("Ya existe una asignatura con ese nombre.");
     return;
   }
-
-  // Faculty Selection
+  
   const oldKey = `${cid}:${oldSubjName}`;
-  const currentFaculty = (S.subjectFaculties && S.subjectFaculties[oldKey]) || "Facultad de Ingeniería y Negocios";
-  let promptNum = "1";
-  if (currentFaculty === "Ciencias Sociales y Educación") promptNum = "2";
-  else if (currentFaculty === "Recursos Naturales y Medicina Veterinaria") promptNum = "3";
-
-  const facultyChoice = prompt(
-    "Editar Facultad de la asignatura:\n" +
-    "1. Facultad de Ingeniería y Negocios\n" +
-    "2. Ciencias Sociales y Educación\n" +
-    "3. Recursos Naturales y Medicina Veterinaria\n" +
-    "Ingresa 1, 2 o 3 (Actual: " + promptNum + "):",
-    promptNum
-  );
-
-  let faculty = "Facultad de Ingeniería y Negocios";
-  if (facultyChoice === "2") faculty = "Ciencias Sociales y Educación";
-  else if (facultyChoice === "3") faculty = "Recursos Naturales y Medicina Veterinaria";
+  const newKey = `${cid}:${cleanedName}`;
 
   if (cleanedName !== oldSubjName) {
     if (S.subjects[cid]) {
@@ -3707,23 +3757,33 @@ function _doEdit(oldSubjName, cid) {
     S.resources.forEach(r => {
       if (r.clientId === cid && r.subject === oldSubjName) r.subject = cleanedName;
     });
-    const oldPKey = `${cid}:${oldSubjName}`;
-    const newPKey = `${cid}:${cleanedName}`;
-    if (S.prioritySubjects[oldPKey]) {
-      S.prioritySubjects[newPKey] = true;
-      delete S.prioritySubjects[oldPKey];
+    
+    // Move priority flag if it exists
+    if (!S.prioritySubjects) S.prioritySubjects = {};
+    if (isPri) {
+      S.prioritySubjects[newKey] = true;
+    } else {
+      delete S.prioritySubjects[newKey];
     }
-    const newKey = `${cid}:${cleanedName}`;
+    delete S.prioritySubjects[oldKey]; // clean old key
+    
+    // Move faculty
     if (!S.subjectFaculties) S.subjectFaculties = {};
     S.subjectFaculties[newKey] = faculty;
     delete S.subjectFaculties[oldKey];
   } else {
+    // Just update faculty and priority
     if (!S.subjectFaculties) S.subjectFaculties = {};
     S.subjectFaculties[oldKey] = faculty;
+    
+    if (!S.prioritySubjects) S.prioritySubjects = {};
+    if (isPri) S.prioritySubjects[oldKey] = true;
+    else delete S.prioritySubjects[oldKey];
   }
-
+  
   save();
   renderAsig();
+  closeEditAsig();
 }
 
 function _doDuplicate(subjName, cid) {
