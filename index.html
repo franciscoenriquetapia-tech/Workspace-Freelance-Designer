@@ -3061,8 +3061,8 @@ function triggerNotification(title, body) {
   }
 
   // 2. Email Service Dispatch (EmailJS Integration)
-  if (S.cfg?.emailActive !== false && S.cfg?.email) {
-    const emailTo = S.cfg.email;
+  if (S.cfg?.emailActive !== false) {
+    const emailTo = S.cfg?.email || 'franciscoenrique.tapia@gmail.com';
     console.log(`[Email Service] Despachando alerta a ${emailTo}: "${title}"`);
     if (typeof emailjs !== 'undefined') {
       emailjs.send("service_aq3jlle", "template_bd51wkx", {
