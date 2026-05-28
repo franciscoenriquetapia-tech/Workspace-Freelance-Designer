@@ -1497,6 +1497,10 @@ select:focus, input:focus, textarea:focus {
       <button class="btn btn-p" style="width:100%; padding:12px; margin-top:20px; font-size:13px; font-weight:700; border-radius:var(--rs); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);" onclick="openProjects()">
         <i data-lucide="plus" style="width:16px; height:16px; stroke-width:3px;"></i> Nuevo Proyecto
       </button>
+      
+      <button class="btn btn-sm" style="width:100%; justify-content:center; gap:8px; margin-top:12px; color:var(--er); background:var(--erl); border:none;" onclick="logoutApp()">
+        <i data-lucide="log-out" style="width:14px; height:14px;"></i> Cerrar Sesión
+      </button>
     </div>
     
 
@@ -1525,6 +1529,9 @@ select:focus, input:focus, textarea:focus {
           </div>
           <span>Admin User</span>
         </div>
+        <button class="ibtn" style="margin-left:8px; color:var(--er);" onclick="logoutApp()" title="Cerrar Sesión">
+          <i data-lucide="log-out"></i>
+        </button>
       </div>
     </header>
 
@@ -4210,6 +4217,15 @@ async function loginWithGoogle() {
     document.getElementById('login-err').style.color = 'var(--er)';
     document.getElementById('login-err').textContent = err.message === 'Correo no autorizado.' ? 'Acceso denegado. Usa tu cuenta principal.' : 'Error al iniciar sesión con Google';
     setTimeout(() => { document.getElementById('login-err').textContent = ''; }, 3000);
+  }
+}
+
+async function logoutApp() {
+  try {
+    await firebase.auth().signOut();
+    window.location.reload();
+  } catch (err) {
+    console.error('Error al cerrar sesión', err);
   }
 }
 
