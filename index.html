@@ -1604,6 +1604,12 @@ select:focus, input:focus, textarea:focus {
           <div class="table-header">
             <h3 class="table-title">Todos los Recursos</h3>
             <div class="table-actions">
+              <select id="fac-s" onchange="renderResources()" style="width:140px;">
+                <option value="all">Todas las Facultades</option>
+                <option value="Facultad de Ingeniería y Negocios">Facultad de Ingeniería y Negocios</option>
+                <option value="Ciencias Sociales y Educación">Ciencias Sociales y Educación</option>
+                <option value="Recursos Naturales y Medicina Veterinaria">Recursos Naturales y Medicina Veterinaria</option>
+              </select>
               <select id="fs" onchange="renderResources()" style="width:140px;"></select>
               <select id="ft" onchange="renderResources()" style="width:140px;">
                 <option value="all">Todos los tipos</option>
@@ -1713,6 +1719,12 @@ select:focus, input:focus, textarea:focus {
             
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <!-- Calendar filters -->
+              <select id="cal-fac-s" onchange="renderCalendar()" style="width:145px; padding:6px 10px; height:32px; font-size:12px;">
+                <option value="all">Todas las Facultades</option>
+                <option value="Facultad de Ingeniería y Negocios">Ingeniería y Negocios</option>
+                <option value="Ciencias Sociales y Educación">Cs. Sociales y Educación</option>
+                <option value="Recursos Naturales y Medicina Veterinaria">RR.NN y Med. Vet</option>
+              </select>
               <select id="cal-fs" onchange="renderCalendar()" style="width:160px; padding:6px 10px; height:32px; font-size:12px;"></select>
               <select id="cal-fst" onchange="renderCalendar()" style="width:130px; padding:6px 10px; height:32px; font-size:12px;">
                 <option value="all">Todos los estados</option>
@@ -2884,10 +2896,18 @@ function renderResources(){
   const ft = document.getElementById('ft').value;
   const fst = document.getElementById('fst').value;
   
+  const facS = document.getElementById('fac-s') ? document.getElementById('fac-s').value : 'all';
+  
   let R = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
   R = [...R].reverse(); // Putting last registered first!
   if(fs!=='all') R = R.filter(r=>r.subject===fs);
   if(ft!=='all') R = R.filter(r=>r.tipo===ft);
+  if(facS!=='all') {
+    R = R.filter(r => {
+      const f = (S.subjectFaculties && S.subjectFaculties[`${r.clientId}:${r.subject}`]) || "Facultad de Ingeniería y Negocios";
+      return f === facS;
+    });
+  }
   if(fst!=='all') {
     if(fst==='urgente') {
       R = R.filter(r => r.status !== 'completado' && (prio(r).lv === 'urgente' || prio(r).lv === 'vencido'));
@@ -3286,6 +3306,7 @@ function renderCalendar(){
   fillCalendarFilters();
   const fs = document.getElementById('cal-fs')?.value || 'all';
   const fst = document.getElementById('cal-fst')?.value || 'all';
+  const facS = document.getElementById('cal-fac-s') ? document.getElementById('cal-fac-s').value : 'all';
 
   const now=new Date();
   const target=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
@@ -3299,6 +3320,12 @@ function renderCalendar(){
   let R = cliRes(curClient);
   if(fs !== 'all') {
     R = R.filter(r => r.subject === fs);
+  }
+  if(facS !== 'all') {
+    R = R.filter(r => {
+      const f = (S.subjectFaculties && S.subjectFaculties[`${r.clientId}:${r.subject}`]) || "Facultad de Ingeniería y Negocios";
+      return f === facS;
+    });
   }
   if(fst !== 'all') {
     if(fst === 'urgente') {
