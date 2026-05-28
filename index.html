@@ -1919,6 +1919,11 @@ select:focus, input:focus, textarea:focus {
         </select>
       </div>
       
+      <div class="fg full">
+        <label class="fl">Enlace de Seguimiento (Excel/Drive)</label>
+        <input type="url" id="ea-link" placeholder="Ej: https://docs.google.com/spreadsheets/d/...">
+      </div>
+      
       <div class="fg full" style="display:flex; align-items:center; gap:8px; margin-top: 8px;">
         <input type="checkbox" id="ea-pri" style="width:auto; cursor:pointer;">
         <label for="ea-pri" style="font-size:12px; font-weight:700; cursor:pointer; color:var(--tx); display:flex; align-items:center; gap:4px;">
@@ -3520,6 +3525,9 @@ function renderAsig(){
       ? `border-left: 5px solid #f59e0b; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);` 
       : ``;
 
+    const excelLink = (S.subjectLinks && S.subjectLinks[`${item.cid}:${item.s}`]) || "";
+    const linkHtml = excelLink ? `<a href="${excelLink}" target="_blank" style="font-size:11px; font-weight:700; color:#16a34a; display:inline-flex; align-items:center; gap:5px; margin-top:2px; margin-bottom:12px; background:#f0fdf4; padding:4px 8px; border-radius:4px; border:1px solid #bbf7d0; text-decoration:none;"><i data-lucide="external-link" style="width:12px;height:12px;"></i> Proyecto Excel</a>` : `<div style="height:12px;"></div>`;
+
     return `<div class="asig-card c-${item.cid}" id="asig-card-${idx}" style="position:relative; ${highlightStyle}">
       <div class="asig-card-watermark" style="position:absolute; right:-15px; bottom:-15px; color:${item.c.colorVal}; opacity:0.04; pointer-events:none; transform:rotate(-15deg); z-index:1;"><i data-lucide="graduation-cap" style="width:100px; height:100px; stroke-width:1;"></i></div>
       <div class="asig-card-header" style="position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
@@ -3555,7 +3563,8 @@ function renderAsig(){
 
       <div style="position:relative; z-index:2; margin-top: 12px;">
         <h4 class="asig-card-name" style="line-height:1.3; font-size:15.5px; font-weight:700;">${item.s}</h4>
-        <div class="asig-card-code" style="font-size:11.5px; font-weight:600; color:var(--t2); display:flex; align-items:center; gap:6px; margin-top:4px; margin-bottom:14px;"><i data-lucide="building-2" style="width:13px;height:13px;color:var(--t3);"></i> ${item.faculty}</div>
+        <div class="asig-card-code" style="font-size:11.5px; font-weight:600; color:var(--t2); display:flex; align-items:center; gap:6px; margin-top:4px;"><i data-lucide="building-2" style="width:13px;height:13px;color:var(--t3);"></i> ${item.faculty}</div>
+        ${linkHtml}
       </div>
       <div class="asig-progress-wrap" style="position:relative; z-index:2;">
         <div class="asig-progress-lbl">
@@ -3750,6 +3759,9 @@ function _doEdit(oldSubjName, cid) {
   const currentFaculty = (S.subjectFaculties && S.subjectFaculties[oldKey]) || "Facultad de Ingeniería y Negocios";
   document.getElementById('ea-fac').value = currentFaculty;
   
+  const currentLink = (S.subjectLinks && S.subjectLinks[oldKey]) || "";
+  document.getElementById('ea-link').value = currentLink;
+  
   const isPri = S.prioritySubjects && S.prioritySubjects[oldKey];
   document.getElementById('ea-pri').checked = !!isPri;
   
@@ -3767,6 +3779,7 @@ function saveEditAsig() {
   const newName = document.getElementById('ea-name').value;
   const cleanedName = newName.trim();
   const faculty = document.getElementById('ea-fac').value;
+  const link = document.getElementById('ea-link').value.trim();
   const isPri = document.getElementById('ea-pri').checked;
   
   if (!cleanedName) {
@@ -3781,6 +3794,8 @@ function saveEditAsig() {
   
   const oldKey = `${cid}:${oldSubjName}`;
   const newKey = `${cid}:${cleanedName}`;
+
+  if (!S.subjectLinks) S.subjectLinks = {};
 
   if (cleanedName !== oldSubjName) {
     if (S.subjects[cid]) {
@@ -3803,10 +3818,18 @@ function saveEditAsig() {
     if (!S.subjectFaculties) S.subjectFaculties = {};
     S.subjectFaculties[newKey] = faculty;
     delete S.subjectFaculties[oldKey];
+
+    // Move link
+    if (link) S.subjectLinks[newKey] = link;
+    else delete S.subjectLinks[newKey];
+    delete S.subjectLinks[oldKey];
   } else {
-    // Just update faculty and priority
+    // Just update faculty, link, and priority
     if (!S.subjectFaculties) S.subjectFaculties = {};
     S.subjectFaculties[oldKey] = faculty;
+    
+    if (link) S.subjectLinks[oldKey] = link;
+    else delete S.subjectLinks[oldKey];
     
     if (!S.prioritySubjects) S.prioritySubjects = {};
     if (isPri) S.prioritySubjects[oldKey] = true;
