@@ -2261,6 +2261,7 @@ function load(){
 
   if(cl){try{CLIENTS=JSON.parse(cl)}catch(e){}}
   if(d){try{const p=JSON.parse(d);S={...S,...p};
+    if(!S.resources) S.resources = [];
     if(!S.prioritySubjects) S.prioritySubjects = {};
     if(!S.subjectFaculties) S.subjectFaculties = {};
     let newSubj = [];
@@ -2335,6 +2336,7 @@ async function loadCloud() {
       if (data && data.S && data.CLIENTS) {
         S = data.S;
         CLIENTS = data.CLIENTS;
+        if (!S.resources) S.resources = [];
         if (!S.prioritySubjects) S.prioritySubjects = {};
         if (!S.subjectFaculties) S.subjectFaculties = {};
         localStorage.setItem('rfust_v5', JSON.stringify(S));
@@ -2471,6 +2473,9 @@ setInterval(async () => {
           
           S = data.S;
           CLIENTS = data.CLIENTS;
+          if (!S.resources) S.resources = [];
+          if (!S.prioritySubjects) S.prioritySubjects = {};
+          if (!S.subjectFaculties) S.subjectFaculties = {};
           localStorage.setItem('rfust_v5', JSON.stringify(S));
           localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
           rerenderAllData();
@@ -3117,34 +3122,46 @@ function updateEditTipos(cid, selTipo) {
   }).join('');
 }
 function triggerNotification(title, body) {
-  // 1. Browser Native Desktop Notification
-  if ('Notification' in window) {
-    if (Notification.permission === 'granted') {
-      new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' });
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' });
-        }
-      });
+  try {
+    // 1. Browser Native Desktop Notification
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' });
+          }
+        }).catch(err => {
+          console.warn("Notification.requestPermission failed:", err);
+        });
+      }
     }
+  } catch (e) {
+    console.warn("Browser Notification trigger failed:", e);
   }
 
-  // 2. Email Service Dispatch (EmailJS Integration)
-  if (S.cfg?.emailActive !== false) {
-    const emailTo = S.cfg?.email || 'franciscoenrique.tapia@gmail.com';
-    console.log(`[Email Service] Despachando alerta a ${emailTo}: "${title}"`);
-    if (typeof emailjs !== 'undefined') {
-      emailjs.send("service_elmwdqa", "template_bd51wkx", {
-        to_email: emailTo,
-        subject: title,
-        message: body,
-        system_time: new Date().toLocaleString()
-      }).then(
-        () => console.log(`[Email Service] Correo enviado exitosamente a ${emailTo}`),
-        (err) => console.warn(`[Email Service Integration] Para conectar EmailJS real, configura tu ID en emailjs.init(). (${err.text || err})`)
-      );
+  try {
+    // 2. Email Service Dispatch (EmailJS Integration)
+    if (S.cfg?.emailActive !== false) {
+      const emailTo = S.cfg?.email || 'franciscoenrique.tapia@gmail.com';
+      console.log(`[Email Service] Despachando alerta a ${emailTo}: "${title}"`);
+      if (typeof emailjs !== 'undefined') {
+        emailjs.send("service_elmwdqa", "template_bd51wkx", {
+          to_email: emailTo,
+          subject: title,
+          message: body,
+          system_time: new Date().toLocaleString()
+        }).then(
+          () => console.log(`[Email Service] Correo enviado exitosamente a ${emailTo}`),
+          (err) => console.warn(`[Email Service Integration] Para conectar EmailJS real, configura tu ID en emailjs.init(). (${err.text || err})`)
+        ).catch(err => {
+          console.warn("emailjs.send promise rejection:", err);
+        });
+      }
     }
+  } catch (e) {
+    console.warn("Email service dispatch failed:", e);
   }
 }
 
@@ -3273,7 +3290,11 @@ function saveEdit(){
   }
 
   save(); updateDot();
-  checkAndNotifyResource(r);
+  try {
+    checkAndNotifyResource(r);
+  } catch (err) {
+    console.warn("Non-blocking error checking/sending notifications:", err);
+  }
   document.getElementById('e-msg').innerHTML='<div class="al al-g">✅ Cambios guardados</div>';
   setTimeout(()=>{closeEdit(); renderDash();},900);
 }
@@ -3358,7 +3379,11 @@ function saveResource(){
   }
 
   save(); updateDot();
-  checkAndNotifyResource(newRes);
+  try {
+    checkAndNotifyResource(newRes);
+  } catch (err) {
+    console.warn("Non-blocking error checking/sending notifications:", err);
+  }
   msg.innerHTML='<div class="al al-g">✅ Recurso guardado.</div>';
   setTimeout(()=>{clearForm(); go('dashboard')},1000);
 }
