@@ -2329,7 +2329,21 @@ async function loadCloud() {
         }
         rerenderAllData();
       } else {
-        await saveCloud();
+        // La base de datos en la nube está vacía. 
+        // Si tenemos datos locales reales en memoria, los respaldamos subiéndolos de inmediato.
+        if (S && S.resources && S.resources.length > 0) {
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Respaldando datos locales en la nube...`;
+          }
+          await saveCloud();
+        } else {
+          // Si tampoco hay datos locales, inicializamos con los recursos por defecto de Santo Tomás y guardamos en la nube
+          if (!S.resources || S.resources.length === 0) {
+            S.resources = generateDefaultSantoTomasResources();
+          }
+          await saveCloud();
+          rerenderAllData();
+        }
       }
     } else {
       throw new Error("HTTP error " + response.status);
@@ -4187,9 +4201,6 @@ async function checkPassword() {
   document.getElementById('login-err').textContent = 'Autenticando...';
   try {
     await firebase.auth().signInWithEmailAndPassword(email, pwd);
-    document.getElementById('login-container').style.display = 'none';
-    document.getElementById('main-app-container').style.display = 'flex';
-    unlockApp();
   } catch (err) {
     document.getElementById('login-err').style.color = 'var(--er)';
     document.getElementById('login-err').textContent = 'Contraseña incorrecta o usuario no encontrado';
@@ -4204,11 +4215,7 @@ async function loginWithGoogle() {
   try {
     const result = await firebase.auth().signInWithPopup(provider);
     const user = result.user;
-    if (user.email === 'franciscoenrique.tapia@gmail.com') {
-      document.getElementById('login-container').style.display = 'none';
-      document.getElementById('main-app-container').style.display = 'flex';
-      unlockApp();
-    } else {
+    if (user.email !== 'franciscoenrique.tapia@gmail.com') {
       await firebase.auth().signOut();
       throw new Error('Correo no autorizado.');
     }
@@ -4229,15 +4236,16 @@ async function logoutApp() {
   }
 }
 
-function unlockApp() {
+async function unlockApp() {
   const urlParams = new URLSearchParams(window.location.search);
   const urlSyncKey = urlParams.get('sync');
   if (urlSyncKey && urlSyncKey.toUpperCase().startsWith('RF-SYNC-') && urlSyncKey.length >= 10) {
     localStorage.setItem('rf_sync_key', urlSyncKey.toUpperCase());
     window.history.replaceState({}, document.title, window.location.pathname);
   }
-  load();
-  loadCloud();
+  
+  load(); // Cargar datos de LocalStorage
+  
   // Enforce the custom subjects layout on boot
   S.prioritySubjects = S.prioritySubjects || {};
   S.subjectFaculties = S.subjectFaculties || {};
@@ -4246,11 +4254,10 @@ function unlockApp() {
     newInitSubj[c.id] = (S.subjects && S.subjects[c.id]) ? S.subjects[c.id] : [...(DEF_SUBJECTS[c.id] || ['Asignatura General'])];
   });
   S.subjects = newInitSubj;
-  // Pre-populate database with default Santo Tomás welcoming and closing resources if empty
-  if (!S.resources || S.resources.length === 0) {
-    S.resources = generateDefaultSantoTomasResources();
-  }
-  save();
+
+  // Cargar y sincronizar con la nube de Firebase de forma secuencial y segura (evitando race conditions)
+  await loadCloud();
+
   renderDynamicHeaderCbar();
   // Dynamically inject styling for saved clients colors
   CLIENTS.forEach(c => {
@@ -4267,6 +4274,34 @@ function unlockApp() {
   // Initialize modern Lucide flat icons globally
   lucide.createIcons();
 }
+
+// ══════════════════════════════════════════════════════════
+// SESSION LIFECYCLE & PERSISTENCE
+// ══════════════════════════════════════════════════════════
+
+let appUnlocked = false;
+
+firebase.auth().onAuthStateChanged(async (user) => {
+  const loginContainer = document.getElementById('login-container');
+  const mainAppContainer = document.getElementById('main-app-container');
+  
+  if (user) {
+    if (user.email === 'franciscoenrique.tapia@gmail.com') {
+      if (loginContainer) loginContainer.style.display = 'none';
+      if (mainAppContainer) mainAppContainer.style.display = 'flex';
+      if (!appUnlocked) {
+        appUnlocked = true;
+        await unlockApp();
+      }
+    } else {
+      await firebase.auth().signOut();
+    }
+  } else {
+    appUnlocked = false;
+    if (loginContainer) loginContainer.style.display = 'flex';
+    if (mainAppContainer) mainAppContainer.style.display = 'none';
+  }
+});
 
 // Inicializar iconos básicos que sí están en el DOM (como el candado del login)
 lucide.createIcons();
