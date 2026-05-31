@@ -2241,9 +2241,25 @@ let _asigItems = []; // Global reference for rendered subject items (used by ind
 
 
 function load(){
-  const cl=localStorage.getItem('rfust_clients_v5');
+  let cl = localStorage.getItem('rfust_clients_v5');
+  let d = localStorage.getItem('rfust_v5');
+  
+  // MIGRACIÓN AUTOMÁTICA DE BASE DE DATOS V4 A V5
+  if (!d) {
+    const oldD = localStorage.getItem('rfust_v4');
+    const oldCl = localStorage.getItem('rfust_clients_v4');
+    if (oldD) {
+      console.log("¡Encontrada base de datos V4 histórica! Migrando automáticamente a V5...");
+      d = oldD;
+      localStorage.setItem('rfust_v5', oldD);
+      if (oldCl) {
+        cl = oldCl;
+        localStorage.setItem('rfust_clients_v5', oldCl);
+      }
+    }
+  }
+
   if(cl){try{CLIENTS=JSON.parse(cl)}catch(e){}}
-  const d=localStorage.getItem('rfust_v5');
   if(d){try{const p=JSON.parse(d);S={...S,...p};
     if(!S.prioritySubjects) S.prioritySubjects = {};
     if(!S.subjectFaculties) S.subjectFaculties = {};
