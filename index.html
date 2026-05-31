@@ -758,8 +758,27 @@ select:focus, input:focus, textarea:focus {
 .cal-evts-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; }
 .cal-evts-list::-webkit-scrollbar { width: 3px; }
 .cal-evts-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
-.cd-evt { font-size: 9.2px; padding: 4px 6px; border-radius: 4px; overflow: hidden; white-space: normal; font-weight: 600; word-break: break-word; line-height: 1.25; border: 1px solid rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; display: block; }
+.cd-evt { font-size: 9.2px; padding: 4px 6px; border-radius: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; line-height: 1.25; border: 1px solid rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; display: block; }
 .cd-evt:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
+.cd-evt-more {
+  font-size: 8.8px;
+  font-weight: 700;
+  color: var(--pri);
+  background: var(--pril);
+  border: 1px dashed var(--pria);
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-align: center;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: all 0.15s ease;
+  display: block;
+}
+.cd-evt-more:hover {
+  background: var(--pri);
+  color: #fff;
+  border-color: var(--pri);
+}
 
 /* ── TIPO ROW ── */
 .trow { display: flex; align-items: center; gap: 9px; padding: 12px 0; border-bottom: 1px solid var(--br); }
@@ -2098,6 +2117,24 @@ select:focus, input:focus, textarea:focus {
   </div>
 </div>
 
+<!-- MODAL ENTREGAS DEL DÍA -->
+<div class="modal-bg" id="modal-day-evts">
+  <div class="modal" style="max-width:520px; padding:24px; border-radius:var(--rs);">
+    <div class="mhdr" style="margin-bottom:16px; border-bottom:1px solid var(--br); padding-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+      <span class="mtit" style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;"><i data-lucide="calendar-days" style="color:var(--pri);width:18px;height:18px;"></i>Entregas del <span id="day-evts-date-lbl"></span></span>
+      <button class="mclose" onclick="closeDayEvtsModal()"><i data-lucide="x"></i></button>
+    </div>
+    
+    <div id="day-evts-list" style="display:flex; flex-direction:column; gap:10px; max-height:350px; overflow-y:auto; padding-right:4px;">
+      <!-- Renders dynamically -->
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; margin-top:16px; border-top:1px solid var(--br); padding-top:12px;">
+      <button class="btn btn-p" onclick="closeDayEvtsModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GESTIÓN DE PROYECTOS / CLIENTES -->
 <div class="modal-bg" id="modal-projects">
   <div class="modal" style="max-width:450px;">
@@ -3407,20 +3444,10 @@ function fillCalendarFilters(){
   sel.innerHTML='<option value="all">Todas las asignaturas</option>'+subjs.map(s=>`<option value="${s}"${s===curSubj?' selected':''}>${s}</option>`).join('');
 }
 
-function renderCalendar(){
-  fillCalendarFilters();
+function getFilteredCalResources() {
   const fs = document.getElementById('cal-fs')?.value || 'all';
   const fst = document.getElementById('cal-fst')?.value || 'all';
   const facS = document.getElementById('cal-fac-s') ? document.getElementById('cal-fac-s').value : 'all';
-
-  const now=new Date();
-  const target=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
-  const year=target.getFullYear(),month=target.getMonth();
-  document.getElementById('cal-lbl').textContent=MONTHS[month]+' '+year;
-  const startOffset=(new Date(year,month,1).getDay()+6)%7;
-  const daysInM=new Date(year,month+1,0).getDate();
-  const today=new Date(); today.setHours(0,0,0,0);
-  const byDay={};
 
   let R = cliRes(curClient);
   if(fs !== 'all') {
@@ -3439,9 +3466,23 @@ function renderCalendar(){
       R = R.filter(r => r.status === fst);
     }
   } else {
-    // Exclude completed resources from the calendar by default
     R = R.filter(r => r.status !== 'completado');
   }
+  return R;
+}
+
+function renderCalendar(){
+  fillCalendarFilters();
+  const now=new Date();
+  const target=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
+  const year=target.getFullYear(),month=target.getMonth();
+  document.getElementById('cal-lbl').textContent=MONTHS[month]+' '+year;
+  const startOffset=(new Date(year,month,1).getDay()+6)%7;
+  const daysInM=new Date(year,month+1,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const byDay={};
+
+  const R = getFilteredCalResources();
 
   R.forEach(r=>{if(!r.dueDate)return;const d=new Date(r.dueDate+'T00:00:00');if(d.getFullYear()===year&&d.getMonth()===month){const k=d.getDate();(byDay[k]||(byDay[k]=[])).push(r)}});
   let html=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div style="text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);">${d}</div>`).join('');
@@ -3450,10 +3491,17 @@ function renderCalendar(){
     const dt=new Date(year,month,day); dt.setHours(0,0,0,0);
     const isToday=dt.getTime()===today.getTime();
     const evts=byDay[day]||[];
-    html+=`<div class="cal-day${isToday?' today':''}">
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    
+    const maxVisible = 2;
+    const hasMore = evts.length > 3;
+    const visibleEvts = hasMore ? evts.slice(0, maxVisible) : evts;
+    const dayClickAttr = hasMore ? ` onclick="openDayEvtsModal('${dateStr}', '${day}')" style="cursor:pointer;"` : '';
+    
+    html+=`<div class="cal-day${isToday?' today':''}"${dayClickAttr}>
       <div class="cdn">${day}</div>
       <div class="cal-evts-list">
-        ${evts.map(r=>{
+        ${visibleEvts.map(r=>{
           const p=r.status==='completado'?{lv:'completado'}:prio(r);
           
           const KIND_COLORS = {
@@ -3474,6 +3522,7 @@ function renderCalendar(){
           
           const titleEscaped = r.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
           const tooltipHtml = `<strong>${titleEscaped}</strong><br><span style='color:var(--t3);'>Estado:</span> <strong>${stLabel}</strong><br><span style='color:var(--t3);'>Fecha Límite:</span> <strong>${formattedDate}</strong>`;
+          const tooltipEscaped = tooltipHtml.replace(/'/g, "\\'").replace(/"/g, '&quot;');
           
           let badgeStyle = 'background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); color: inherit;';
           if (p.lv === 'urgente' || p.lv === 'vencido') {
@@ -3486,13 +3535,88 @@ function renderCalendar(){
           
           const statusBadge = `<span style="font-size: 8px; opacity: 0.95; display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; text-transform: uppercase; margin-right: 4px; ${badgeStyle} vertical-align: middle;">${stLabel}</span>`;
           
-          return`<div class="cd-evt" style="background:${bg};color:${cl}" onclick="openViewRes('${r.id}')" onmouseenter="showCalTooltip(event, '${tooltipHtml}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
+          return`<div class="cd-evt" style="background:${bg};color:${cl}" onclick="event.stopPropagation(); openViewRes('${r.id}')" onmouseenter="showCalTooltip(event, '${tooltipEscaped}')" onmouseleave="hideCalTooltip()">${statusBadge}${c ? `<span style="font-weight:700; opacity:0.85; font-size:8.5px; margin-right:3px;">[${c.short}]</span>` : ''}${r.title}</div>`;
         }).join('')}
+        ${hasMore ? `<div class="cd-evt-more" onclick="event.stopPropagation(); openDayEvtsModal('${dateStr}', '${day}')"><i data-lucide="plus" style="width:10px;height:10px;display:inline-block;vertical-align:middle;margin-right:2px;"></i>${evts.length - maxVisible} más</div>` : ''}
       </div>
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
   lucide.createIcons();
+}
+
+function openDayEvtsModal(dateStr, dayNum) {
+  const container = document.getElementById('day-evts-list');
+  const dateLbl = document.getElementById('day-evts-date-lbl');
+  if (!container || !dateLbl) return;
+  
+  const parts = dateStr.split('-');
+  const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+  dateLbl.textContent = formattedDate;
+  
+  const R = getFilteredCalResources().filter(r => r.dueDate === dateStr);
+  
+  if (R.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="ei">📅</div><div class="et">No hay entregas para este día.</div></div>';
+  } else {
+    container.innerHTML = R.map(r => {
+      const c = CLIENTS.find(cl => cl.id === r.clientId);
+      const stLabels = { pendiente: 'Pendiente', en_progreso: 'En progreso', completado: 'Completado' };
+      const stLabel = stLabels[r.status] || r.status;
+      const p = r.status === 'completado' ? { lv: 'completado' } : prio(r);
+      
+      const KIND_COLORS = {
+        diagramacion: { bg: '#e0f2fe', cl: '#0369a1' },
+        video_canva: { bg: '#fdf2f8', cl: '#be185d' },
+        interactivo_genially: { bg: '#faf5ff', cl: '#7e22ce' },
+        presentacion_ppt: { bg: '#fef3c7', cl: '#b45309' },
+        rise: { bg: '#ecfdf5', cl: '#047857' }
+      };
+      const kc = KIND_COLORS[r.kind] || { bg: 'var(--okl)', cl: 'var(--ok)' };
+      const bg = kc.bg;
+      const cl = kc.cl;
+      
+      let badgeStyle = 'background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); color: inherit;';
+      if (p.lv === 'urgente' || p.lv === 'vencido') {
+        badgeStyle = 'background: #ef4444; border: 1px solid #ef4444; color: #ffffff;';
+      } else if (r.status === 'completado') {
+        badgeStyle = 'background: #22c55e; border: 1px solid #22c55e; color: #ffffff;';
+      } else if (r.status === 'en_progreso') {
+        badgeStyle = 'background: #f97316; border: 1px solid #f97316; color: #ffffff;';
+      }
+      
+      const statusBadge = `<span style="font-size: 9px; display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; text-transform: uppercase; ${badgeStyle}">${stLabel}</span>`;
+      
+      const clientBadge = c ? `<span class="inst-badge b-${c.short.toLowerCase()}" style="font-size:9.5px; padding: 2px 6px; font-weight:700;">${c.name}</span>` : '';
+      
+      return `
+        <div style="background:var(--s1); border:1px solid var(--br); border-radius:var(--rs); padding:12px; display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:all 0.15s ease;" 
+             onclick="closeDayEvtsModal(); openViewRes('${r.id}')"
+             onmouseenter="this.style.borderColor='var(--pri)'; this.style.transform='translateY(-1px)';"
+             onmouseleave="this.style.borderColor='var(--br)'; this.style.transform='none';">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              ${clientBadge}
+              ${statusBadge}
+            </div>
+            <span style="font-size:10px; font-family:var(--mo); color:var(--t3);">${r.dueDate.split('-').reverse().join('/')}</span>
+          </div>
+          <div style="font-size:13px; font-weight:700; color:var(--tx); line-height:1.4;">${r.title}</div>
+          <div style="font-size:11px; color:var(--t2); font-weight:600; display:flex; align-items:center; gap:4px;">
+            <span>📚 Asignatura:</span>
+            <span style="color:var(--tx);">${r.subject}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  document.getElementById('modal-day-evts').classList.add('on');
+  lucide.createIcons();
+}
+
+function closeDayEvtsModal() {
+  document.getElementById('modal-day-evts').classList.remove('on');
 }
 function calPrev(){calOffset--; renderCalendar()}
 function calNext(){calOffset++; renderCalendar()}
@@ -4311,6 +4435,7 @@ async function unlockApp() {
   fillFilters();
   document.getElementById('modal-edit').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEdit()});
   document.getElementById('modal-projects').addEventListener('click',e=>{if(e.target===e.currentTarget)closeProjects()});
+  document.getElementById('modal-day-evts').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDayEvtsModal()});
 
   // Initialize modern Lucide flat icons globally
   lucide.createIcons();
