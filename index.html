@@ -1689,6 +1689,15 @@ select:focus, input:focus, textarea:focus {
                 <option value="urgente">Urgente</option>
                 <option value="completado">Completado</option>
               </select>
+              <select id="f-sort" onchange="changeRecSort()" style="width:160px;">
+                <option value="newest">📅 Más recientes</option>
+                <option value="oldest">📅 Más antiguos</option>
+                <option value="name_asc">🔤 Nombre A→Z</option>
+                <option value="name_desc">🔤 Nombre Z→A</option>
+                <option value="due_asc">⏰ Fecha límite ↑</option>
+                <option value="due_desc">⏰ Fecha límite ↓</option>
+                <option value="urgency">🔴 Urgencia</option>
+              </select>
               <button class="btn btn-p" onclick="go('nueva')"><i data-lucide="plus"></i> Registrar</button>
             </div>
           </div>
@@ -2278,6 +2287,7 @@ let editId=null;
 let _clic=null,_dc=null,_ec2=null;
 let dashPage=1;
 let recPage=1;
+let recSort='newest'; // 'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'due_asc' | 'due_desc' | 'urgency'
 const PAGE_SIZE=10;
 
 // Subjects Filter & Sort State
@@ -3027,7 +3037,41 @@ function renderResources(){
   const facS = document.getElementById('fac-s') ? document.getElementById('fac-s').value : 'all';
   
   let R = curClient === 'all' ? S.resources : S.resources.filter(r=>r.clientId===curClient);
-  R = [...R].reverse(); // Putting last registered first!
+  R = [...R]; // Clone to avoid mutating original
+  
+  // Apply sorting
+  const sortSel = document.getElementById('f-sort');
+  const sortVal = sortSel ? sortSel.value : recSort;
+  switch(sortVal) {
+    case 'newest':
+      R.sort((a,b) => (b.createdAt || b.assignedDate || '').localeCompare(a.createdAt || a.assignedDate || ''));
+      break;
+    case 'oldest':
+      R.sort((a,b) => (a.createdAt || a.assignedDate || '').localeCompare(b.createdAt || b.assignedDate || ''));
+      break;
+    case 'name_asc':
+      R.sort((a,b) => (a.title||'').localeCompare(b.title||'', 'es', {sensitivity:'base'}));
+      break;
+    case 'name_desc':
+      R.sort((a,b) => (b.title||'').localeCompare(a.title||'', 'es', {sensitivity:'base'}));
+      break;
+    case 'due_asc':
+      R.sort((a,b) => (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+      break;
+    case 'due_desc':
+      R.sort((a,b) => (b.dueDate||'').localeCompare(a.dueDate||''));
+      break;
+    case 'urgency':
+      R.sort((a,b) => {
+        const urgencyOrder = {vencido:0, urgente:1, alto:2, normal:3, completado:4};
+        const pa = a.status==='completado' ? {lv:'completado'} : prio(a);
+        const pb = b.status==='completado' ? {lv:'completado'} : prio(b);
+        return (urgencyOrder[pa.lv]??3) - (urgencyOrder[pb.lv]??3);
+      });
+      break;
+    default:
+      R.reverse();
+  }
   if(fs!=='all') R = R.filter(r=>r.subject===fs);
   if(ft!=='all') R = R.filter(r=>r.tipo===ft);
   if(facS!=='all') {
@@ -3082,6 +3126,13 @@ function renderResources(){
 
 function goToRecPage(page) {
   recPage = page;
+  renderResources();
+}
+
+function changeRecSort() {
+  const sel = document.getElementById('f-sort');
+  if (sel) recSort = sel.value;
+  recPage = 1;
   renderResources();
 }
 
@@ -3428,7 +3479,7 @@ function saveResource(){
   const notes=document.getElementById('f-notes').value.trim();
   const msg=document.getElementById('f-msg');
   if(!title||!ass||!due){msg.innerHTML='<div class="al al-w">⚠️ Completa los campos.</div>';return}
-  const newRes = {id:genId(),title,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:due,assignedBy:di,status:st,notes};
+  const newRes = {id:genId(),title,clientId:cid,subject:subj,tipo,kind,assignedDate:ass,dueDate:due,assignedBy:di,status:st,notes,createdAt:new Date().toISOString()};
   S.resources.push(newRes);
   
   // Save manually set priority state on creation
