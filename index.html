@@ -2297,21 +2297,45 @@ let asigFacultyFilter = 'all'; // 'all' | faculty name string
 let _asigItems = []; // Global reference for rendered subject items (used by index-based onclick)
 
 
+function isDefaultDatabase(resources) {
+  if (!resources || resources.length === 0) return true;
+  return resources.every(r => (r.id && (r.id.startsWith('st-b-') || r.id.startsWith('st-c-'))) || r.assignedBy === 'Auto');
+}
+
 function load(){
   let cl = localStorage.getItem('rfust_clients_v5');
   let d = localStorage.getItem('rfust_v5');
   
-  // MIGRACIÓN AUTOMÁTICA DE BASE DE DATOS V4 A V5
+  // MIGRACIÓN Y RESTAURACIÓN AUTOMÁTICA DESDE V4 HISTÓRICO
+  let shouldMigrate = false;
   if (!d) {
+    shouldMigrate = true;
+  } else {
+    try {
+      const parsedD = JSON.parse(d);
+      if (parsedD && isDefaultDatabase(parsedD.resources)) {
+        shouldMigrate = true;
+      }
+    } catch (e) {}
+  }
+  
+  if (shouldMigrate) {
     const oldD = localStorage.getItem('rfust_v4');
     const oldCl = localStorage.getItem('rfust_clients_v4');
     if (oldD) {
-      console.log("¡Encontrada base de datos V4 histórica! Migrando automáticamente a V5...");
-      d = oldD;
-      localStorage.setItem('rfust_v5', oldD);
-      if (oldCl) {
-        cl = oldCl;
-        localStorage.setItem('rfust_clients_v5', oldCl);
+      try {
+        const parsedOld = JSON.parse(oldD);
+        if (parsedOld && parsedOld.resources && parsedOld.resources.length > 0 && !isDefaultDatabase(parsedOld.resources)) {
+          console.log("¡Encontrada base de datos V4 histórica con datos reales! Migrando/Restaurando a V5...");
+          d = oldD;
+          localStorage.setItem('rfust_v5', oldD);
+          if (oldCl) {
+            cl = oldCl;
+            localStorage.setItem('rfust_clients_v5', oldCl);
+          }
+        }
+      } catch (e) {
+        console.error("Error al analizar base de datos V4 antigua:", e);
       }
     }
   }
@@ -2391,18 +2415,29 @@ async function loadCloud() {
     if (response.ok) {
       const data = await response.json();
       if (data && data.S && data.CLIENTS) {
-        S = data.S;
-        CLIENTS = data.CLIENTS;
-        if (!S.resources) S.resources = [];
-        if (!S.prioritySubjects) S.prioritySubjects = {};
-        if (!S.subjectFaculties) S.subjectFaculties = {};
-        localStorage.setItem('rfust_v5', JSON.stringify(S));
-        localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+        const localIsDefault = isDefaultDatabase(S.resources);
+        const remoteIsDefault = isDefaultDatabase(data.S.resources);
         
-        if (statusEl) {
-          statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube (Firebase)`;
+        if (!localIsDefault && remoteIsDefault) {
+          console.log("Datos locales válidos detectados. Rescatando y subiendo datos locales a Firebase...");
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Rescatando y respaldando datos locales en la nube...`;
+          }
+          await saveCloud();
+        } else {
+          S = data.S;
+          CLIENTS = data.CLIENTS;
+          if (!S.resources) S.resources = [];
+          if (!S.prioritySubjects) S.prioritySubjects = {};
+          if (!S.subjectFaculties) S.subjectFaculties = {};
+          localStorage.setItem('rfust_v5', JSON.stringify(S));
+          localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+          
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block;"></span> 🟢 Sincronizado y activo en la nube (Firebase)`;
+          }
+          rerenderAllData();
         }
-        rerenderAllData();
       } else {
         // La base de datos en la nube está vacía. 
         // Si tenemos datos locales reales en memoria, los respaldamos subiéndolos de inmediato.
@@ -2476,10 +2511,22 @@ async function linkSyncKey() {
       const data = await response.json();
       if (data && data.S && data.CLIENTS) {
         localStorage.setItem('rf_sync_key', keyInput);
-        S = data.S;
-        CLIENTS = data.CLIENTS;
-        localStorage.setItem('rfust_v5', JSON.stringify(S));
-        localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+        
+        const localIsDefault = isDefaultDatabase(S.resources);
+        const remoteIsDefault = isDefaultDatabase(data.S.resources);
+        
+        if (!localIsDefault && remoteIsDefault) {
+          console.log("linkSyncKey: local has custom data but remote has default data. Uploading local state to linked key...");
+          await saveCloud();
+        } else {
+          S = data.S;
+          CLIENTS = data.CLIENTS;
+          if (!S.resources) S.resources = [];
+          if (!S.prioritySubjects) S.prioritySubjects = {};
+          if (!S.subjectFaculties) S.subjectFaculties = {};
+          localStorage.setItem('rfust_v5', JSON.stringify(S));
+          localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+        }
         
         document.getElementById('cfg-sync-key').value = keyInput;
         document.getElementById('cfg-link-key').value = '';
@@ -2528,15 +2575,23 @@ setInterval(async () => {
             return; 
           }
           
-          S = data.S;
-          CLIENTS = data.CLIENTS;
-          if (!S.resources) S.resources = [];
-          if (!S.prioritySubjects) S.prioritySubjects = {};
-          if (!S.subjectFaculties) S.subjectFaculties = {};
-          localStorage.setItem('rfust_v5', JSON.stringify(S));
-          localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
-          rerenderAllData();
-          console.log("Realtime sync: updated local state with remote Firebase changes.");
+          const localIsDefault = isDefaultDatabase(S.resources);
+          const remoteIsDefault = isDefaultDatabase(data.S.resources);
+          
+          if (!localIsDefault && remoteIsDefault) {
+            console.log("Realtime sync: local has custom data but remote has default data. Uploading local state to Firebase...");
+            await saveCloud();
+          } else {
+            S = data.S;
+            CLIENTS = data.CLIENTS;
+            if (!S.resources) S.resources = [];
+            if (!S.prioritySubjects) S.prioritySubjects = {};
+            if (!S.subjectFaculties) S.subjectFaculties = {};
+            localStorage.setItem('rfust_v5', JSON.stringify(S));
+            localStorage.setItem('rfust_clients_v5', JSON.stringify(CLIENTS));
+            rerenderAllData();
+            console.log("Realtime sync: updated local state with remote Firebase changes.");
+          }
         }
       }
     }
